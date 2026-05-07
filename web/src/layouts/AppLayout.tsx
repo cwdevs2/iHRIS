@@ -12,6 +12,7 @@ import {
   CalendarRange,
   CalendarDays,
   Banknote,
+  Receipt,
   ShieldCheck,
   FileText,
   Bell,
@@ -33,6 +34,8 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   /** Required permission key (module.feature.action). Optional when always shown. */
   permission?: string;
+  /** If the user has this permission, hide the item (used to suppress ESS shortcuts for admins). */
+  hideIfPermission?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -46,6 +49,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/schedule', label: 'Schedule', icon: CalendarRange, permission: 'attendance.logs.view' },
   { to: '/leaves', label: 'Leaves', icon: CalendarDays, permission: 'leaves.requests.view' },
   { to: '/payroll', label: 'Payroll', icon: Banknote, permission: 'payroll.runs.view' },
+  { to: '/my-payslips', label: 'My Payslips', icon: Receipt, permission: 'payroll.payslips.view_own', hideIfPermission: 'payroll.payslips.view_all' },
   { to: '/users', label: 'User Accounts', icon: ShieldCheck, permission: 'users.accounts.view' },
   { to: '/audit-logs', label: 'Audit Logs', icon: ShieldCheck, permission: 'core.audit_logs.view' },
   { to: '/reports', label: 'Reports', icon: FileText, permission: 'hr.employees.export' },
@@ -58,7 +62,11 @@ export function AppLayout() {
   const logout = useLogout();
   const location = useLocation();
 
-  const visibleNav = NAV_ITEMS.filter((item) => !item.permission || hasPermission(item.permission));
+  const visibleNav = NAV_ITEMS.filter((item) => {
+    if (item.permission && !hasPermission(item.permission)) return false;
+    if (item.hideIfPermission && hasPermission(item.hideIfPermission)) return false;
+    return true;
+  });
 
   return (
     <div className="flex min-h-screen w-full bg-surface-50">

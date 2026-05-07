@@ -65,12 +65,34 @@ class PermissionSeeder extends Seeder
         ['leaves', 'requests', 'create', 'File leave requests'],
         ['leaves', 'requests', 'approve', 'Approve leave requests'],
 
-        // Payroll
+        // Payroll — Periods
+        ['payroll', 'periods', 'view', 'View payroll periods'],
+        ['payroll', 'periods', 'manage', 'Create and manage payroll periods'],
+
+        // Payroll — Runs (a single execution against a period)
         ['payroll', 'runs', 'view', 'View payroll runs'],
-        ['payroll', 'runs', 'create', 'Generate payroll'],
-        ['payroll', 'runs', 'finalize', 'Finalize payroll'],
+        ['payroll', 'runs', 'create', 'Generate payroll runs'],
+        ['payroll', 'runs', 'edit', 'Edit draft payroll runs'],
+        ['payroll', 'runs', 'finalize', 'Finalize / lock payroll runs'],
+        ['payroll', 'runs', 'cancel', 'Cancel draft payroll runs'],
+        ['payroll', 'runs', 'mark_paid', 'Mark finalized runs as paid'],
+
+        // Payroll — Payslips
         ['payroll', 'payslips', 'view_own', 'View own payslip'],
         ['payroll', 'payslips', 'view_all', 'View all payslips'],
+        ['payroll', 'payslips', 'export', 'Export & download payslip PDFs'],
+
+        // Payroll — Loans
+        ['payroll', 'loans', 'view', 'View employee loans'],
+        ['payroll', 'loans', 'manage', 'Create / manage employee loans'],
+
+        // Payroll — Compliance reports & statutory tables
+        ['payroll', 'reports', 'view', 'Run government compliance reports'],
+        ['payroll', 'tables', 'manage', 'Update statutory contribution tables'],
+
+        // Payroll — Final pay & 13th month
+        ['payroll', 'final_pay', 'manage', 'Compute and finalize separation pay'],
+        ['payroll', 'thirteenth_month', 'manage', 'Generate 13th-month payroll runs'],
 
         // ESS
         ['ess', 'self', 'view', 'Access self-service portal'],

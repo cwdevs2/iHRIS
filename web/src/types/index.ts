@@ -3,3 +3,4 @@
 
 export type * from './api';
 export type * from './hr';
+export type * from './payroll';

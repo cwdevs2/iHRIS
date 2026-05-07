@@ -772,18 +772,20 @@ Job Requisition → Job Posting → Application → Screening → Interview → 
 
 **Goal:** Accurate, compliant PH payroll processing.
 
-- [ ] Payroll Engine (base + deductions + PH government contributions)
-- [ ] Withholding Tax (TRAIN Law)
-- [ ] Holiday Pay & Night Differential
-- [ ] Overtime Pay Integration
-- [ ] Loan Deduction Management
-- [ ] 13th Month Pay
-- [ ] Final Pay Computation
-- [ ] Payslip PDF Generation
-- [ ] Government Compliance Reports (SSS, PhilHealth, Pag-IBIG, BIR)
-- [ ] Payroll Audit Logging
+- [x] Payroll Engine (base + deductions + PH government contributions)
+- [x] Withholding Tax (TRAIN Law)
+- [x] Holiday Pay & Night Differential
+- [x] Overtime Pay Integration
+- [x] Loan Deduction Management
+- [x] 13th Month Pay
+- [x] Final Pay Computation
+- [x] Payslip PDF Generation (printable Blade HTML; browser "Save as PDF")
+- [x] Government Compliance Reports (SSS, PhilHealth, Pag-IBIG, BIR)
+- [x] Payroll Audit Logging
 
 **Deliverables:** Full payroll run with downloadable payslips and compliance reports
+
+**Status (2026-05-07):** ✅ Phase 4 complete. 11 migrations, 11 models, 7 service classes, 7 controllers, 27 API routes, 9 React pages/tabs, 28 PHPUnit tests passing (66 assertions). Statutory tables seeded for 2024 with year-fallback lookup so payroll continues to work in subsequent years until HR Admin uploads new schedules.
 
 ---
 
@@ -794,7 +796,7 @@ Job Requisition → Job Posting → Application → Screening → Interview → 
 - [ ] ESS Dashboard
 - [ ] Payslip Viewer + Download
 - [ ] Leave Filing via ESS
-- [ ] Attendance Record View
+- [ ] Attendance Recording ClockIn/Clockout
 - [ ] Correction Request via ESS
 - [ ] Personal Info Update Request
 - [ ] PWA Configuration

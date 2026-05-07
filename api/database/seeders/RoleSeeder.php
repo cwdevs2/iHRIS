@@ -61,11 +61,12 @@ class RoleSeeder extends Seeder
             ->orWhere(fn ($q) => $q->where('module', 'core')->whereIn('feature', ['users', 'audit_logs']))
             ->pluck('id'));
 
-        // Manager: view team data, approve requests, ESS.
+        // Manager: view team data, approve requests, ESS, view payroll (read-only).
         $manager->permissions()->sync(Permission::query()
             ->where(fn ($q) => $q->whereIn('module', ['hr', 'attendance'])->where('action', 'view'))
             ->orWhere(fn ($q) => $q->where('module', 'leaves'))
             ->orWhere('module', 'ess')
+            ->orWhere(fn ($q) => $q->where('module', 'payroll')->whereIn('action', ['view', 'view_own']))
             ->pluck('id'));
 
         // Employee: ESS only + own payslip.

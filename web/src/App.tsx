@@ -24,6 +24,10 @@ import { AuditLogsPage } from '@/pages/audit-logs/AuditLogsPage';
 import { AttendancePage } from '@/pages/attendance/AttendancePage';
 import { SchedulePage } from '@/pages/schedule/SchedulePage';
 import { LeavesPage } from '@/pages/leaves/LeavesPage';
+import { PayrollPage } from '@/pages/payroll/PayrollPage';
+import { PayrollRunDetailPage } from '@/pages/payroll/PayrollRunDetailPage';
+import { PayslipDetailPage } from '@/pages/payroll/PayslipDetailPage';
+import { MyPayslipsPage } from '@/pages/payroll/MyPayslipsPage';
 import { ForbiddenPage } from '@/pages/common/ForbiddenPage';
 import { PlaceholderPage } from '@/pages/common/PlaceholderPage';
 
@@ -174,11 +178,34 @@ function AppRouter() {
           path="payroll"
           element={
             <RequirePermission permission="payroll.runs.view">
-              <PlaceholderPage
-                title="Payroll"
-                description="PH-compliant payroll runs, payslips, and reports."
-                phase="Phase 4 — Payroll"
-              />
+              <PayrollPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="payroll/runs/:id"
+          element={
+            <RequirePermission permission="payroll.runs.view">
+              <PayrollRunDetailPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="payroll/payslips/:id"
+          element={
+            <RequirePermission permission="payroll.payslips.view_own">
+              <PayslipDetailPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="my-payslips"
+          element={
+            <RequirePermission permission="payroll.payslips.view_own">
+              <MyPayslipsPage />
             </RequirePermission>
           }
         />

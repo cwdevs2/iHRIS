@@ -14,6 +14,12 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             SuperAdminSeeder::class,
+            // Phase 4 — Payroll statutory tables
+            SssBracketSeeder::class,
+            PhilhealthBracketSeeder::class,
+            PagibigSettingSeeder::class,
+            BirTaxBracketSeeder::class,
+            HolidaySeeder::class,
         ]);
     }
 }

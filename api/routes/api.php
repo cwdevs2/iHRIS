@@ -10,6 +10,13 @@ use App\Http\Controllers\Api\V1\Employee\DocumentController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeController;
 use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Organization\DepartmentController;
+use App\Http\Controllers\Api\V1\Payroll\ComplianceReportController;
+use App\Http\Controllers\Api\V1\Payroll\FinalPayController;
+use App\Http\Controllers\Api\V1\Payroll\LoanController;
+use App\Http\Controllers\Api\V1\Payroll\PayrollPeriodController;
+use App\Http\Controllers\Api\V1\Payroll\PayrollRunController;
+use App\Http\Controllers\Api\V1\Payroll\PayslipController;
+use App\Http\Controllers\Api\V1\Payroll\ThirteenthMonthController;
 use App\Http\Controllers\Api\V1\Tickets\TicketController;
 use App\Http\Controllers\Api\V1\Organization\OrgChartController;
 use App\Http\Controllers\Api\V1\Organization\PositionController;
@@ -159,4 +166,76 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Audit Logs ──────────────────────────────────────────────────────────
     Route::middleware('permission:core.audit_logs.view')
         ->get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+
+    // ── Phase 4: Payroll ────────────────────────────────────────────────────
+
+    Route::prefix('payroll')->group(function () {
+        // Periods
+        Route::middleware('permission:payroll.periods.view')->group(function () {
+            Route::get('/periods', [PayrollPeriodController::class, 'index'])->name('payroll.periods.index');
+            Route::get('/periods/{id}', [PayrollPeriodController::class, 'show'])->name('payroll.periods.show');
+        });
+        Route::middleware('permission:payroll.periods.manage')->group(function () {
+            Route::post('/periods', [PayrollPeriodController::class, 'store'])->name('payroll.periods.store');
+            Route::patch('/periods/{id}', [PayrollPeriodController::class, 'update'])->name('payroll.periods.update');
+            Route::delete('/periods/{id}', [PayrollPeriodController::class, 'destroy'])->name('payroll.periods.destroy');
+        });
+
+        // Runs
+        Route::middleware('permission:payroll.runs.view')->group(function () {
+            Route::get('/runs', [PayrollRunController::class, 'index'])->name('payroll.runs.index');
+            Route::get('/runs/{id}', [PayrollRunController::class, 'show'])->name('payroll.runs.show');
+        });
+        Route::middleware('permission:payroll.runs.create')
+            ->post('/runs', [PayrollRunController::class, 'store'])->name('payroll.runs.store');
+        Route::middleware('permission:payroll.runs.edit')
+            ->post('/runs/{id}/generate', [PayrollRunController::class, 'generate'])->name('payroll.runs.generate');
+        Route::middleware('permission:payroll.runs.finalize')
+            ->patch('/runs/{id}/finalize', [PayrollRunController::class, 'finalize'])->name('payroll.runs.finalize');
+        Route::middleware('permission:payroll.runs.mark_paid')
+            ->patch('/runs/{id}/mark-paid', [PayrollRunController::class, 'markPaid'])->name('payroll.runs.mark_paid');
+        Route::middleware('permission:payroll.runs.cancel')
+            ->patch('/runs/{id}/cancel', [PayrollRunController::class, 'cancel'])->name('payroll.runs.cancel');
+
+        // Payslips
+        // ESS endpoint — visible to anyone with view_own (employees) and to view_all admins.
+        Route::middleware('permission:payroll.payslips.view_own')
+            ->get('/payslips/own', [PayslipController::class, 'own'])->name('payroll.payslips.own');
+        Route::middleware('permission:payroll.payslips.view_all')
+            ->get('/payslips', [PayslipController::class, 'index'])->name('payroll.payslips.index');
+        // Show + document use a runtime guard inside the controller so an employee
+        // can fetch their *own* payslip without needing view_all permission.
+        Route::middleware('permission:payroll.payslips.view_own')->group(function () {
+            Route::get('/payslips/{id}', [PayslipController::class, 'show'])->name('payroll.payslips.show');
+            Route::get('/payslips/{id}/document', [PayslipController::class, 'document'])->name('payroll.payslips.document');
+        });
+
+        // Loans
+        Route::middleware('permission:payroll.loans.view')->group(function () {
+            Route::get('/loans', [LoanController::class, 'index'])->name('payroll.loans.index');
+            Route::get('/loans/{id}', [LoanController::class, 'show'])->name('payroll.loans.show');
+        });
+        Route::middleware('permission:payroll.loans.manage')->group(function () {
+            Route::post('/loans', [LoanController::class, 'store'])->name('payroll.loans.store');
+            Route::patch('/loans/{id}', [LoanController::class, 'update'])->name('payroll.loans.update');
+        });
+
+        // Compliance reports
+        Route::middleware('permission:payroll.reports.view')->group(function () {
+            Route::get('/reports/sss', [ComplianceReportController::class, 'sss'])->name('payroll.reports.sss');
+            Route::get('/reports/philhealth', [ComplianceReportController::class, 'philhealth'])->name('payroll.reports.philhealth');
+            Route::get('/reports/pagibig', [ComplianceReportController::class, 'pagibig'])->name('payroll.reports.pagibig');
+            Route::get('/reports/bir-alpha-list', [ComplianceReportController::class, 'birAlphaList'])->name('payroll.reports.bir');
+        });
+
+        // 13th-month preview
+        Route::middleware('permission:payroll.thirteenth_month.manage')->group(function () {
+            Route::get('/thirteenth-month', [ThirteenthMonthController::class, 'index'])->name('payroll.thirteenth_month.index');
+            Route::get('/thirteenth-month/{employeeId}', [ThirteenthMonthController::class, 'show'])->name('payroll.thirteenth_month.show');
+        });
+
+        // Final pay computation
+        Route::middleware('permission:payroll.final_pay.manage')
+            ->post('/final-pay/compute', [FinalPayController::class, 'compute'])->name('payroll.final_pay.compute');
+    });
 });
