@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+/* ────────────────────────────────────────────────────────────────
+   iHRIS Design System
+   Style: Trust & Authority · Pattern: Minimal Single Column
+   Colors: Cyan primary (#0891B2) + Green CTA (#22C55E)
+   Typography: Inter
+   ──────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Brand */
+  --color-brand-50: #ecfeff;
+  --color-brand-100: #cffafe;
+  --color-brand-200: #a5f3fc;
+  --color-brand-300: #67e8f9;
+  --color-brand-400: #22d3ee;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0891b2;
+  --color-brand-700: #0e7490;
+  --color-brand-800: #155e75;
+  --color-brand-900: #164e63;
+  --color-brand-950: #083344;
+
+  /* CTA / success */
+  --color-cta-500: #22c55e;
+  --color-cta-600: #16a34a;
+  --color-cta-700: #15803d;
+
+  /* Surface neutrals */
+  --color-surface-0: #ffffff;
+  --color-surface-50: #f8fafc;
+  --color-surface-100: #f1f5f9;
+  --color-surface-200: #e2e8f0;
+  --color-surface-300: #cbd5e1;
+  --color-surface-400: #94a3b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #020617;
+
+  /* Semantic */
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* Typography */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Emil-style strong easing curves */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Radii */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* Shadows */
+  --shadow-1: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-2: 0 4px 8px -2px rgb(15 23 42 / 0.06), 0 2px 4px -2px rgb(15 23 42 / 0.04);
+  --shadow-3: 0 12px 24px -8px rgb(15 23 42 / 0.10), 0 4px 8px -4px rgb(15 23 42 / 0.05);
+  --shadow-glow: 0 0 0 4px rgb(8 145 178 / 0.12);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Base styles
+   ──────────────────────────────────────────────────────────────── */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-surface-900);
+    background: var(--color-surface-50);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    margin: 0;
+  }
+
+  ::selection {
+    background: var(--color-brand-200);
+    color: var(--color-brand-900);
+  }
+
+  /* Focus rings (keyboard only) */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Reusable utilities
+   ──────────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .ease-out-strong {
+    transition-timing-function: var(--ease-out-strong);
+  }
+
+  .ease-in-out-strong {
+    transition-timing-function: var(--ease-in-out-strong);
+  }
+
+  .ease-drawer {
+    transition-timing-function: var(--ease-drawer);
+  }
+
+  /* Pressable — Emil: scale(0.97) on :active */
+  .pressable {
+    transition: transform 160ms var(--ease-out-strong);
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+
+  /* Subtle elevated card surface */
+  .card-surface {
+    background: var(--color-surface-0);
+    border: 1px solid var(--color-surface-200);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-1);
+  }
+
+  /* Subtle dot grid background — used on auth pages */
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, rgb(15 23 42 / 0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Reusable input field */
+  .input-field {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-surface-300);
+    background: var(--color-surface-0);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-surface-900);
+    outline: none;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  .input-field:focus {
+    border-color: var(--color-brand-600);
+    box-shadow: var(--shadow-glow);
+  }
+  .input-field::placeholder {
+    color: var(--color-surface-400);
+  }
+  .input-field:disabled {
+    background: var(--color-surface-100);
+    color: var(--color-surface-400);
+    cursor: not-allowed;
+  }
+  select.input-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 2rem;
+  }
+}
