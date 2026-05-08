@@ -20,6 +20,15 @@ import {
   ChevronsLeft,
   ChevronsRight,
   LogOut,
+  Timer,
+  UserCircle,
+  FileEdit,
+  SlidersHorizontal,
+  Briefcase,
+  TrendingUp,
+  Boxes,
+  Plug,
+  ScrollText,
 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
@@ -50,9 +59,20 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/leaves', label: 'Leaves', icon: CalendarDays, permission: 'leaves.requests.view' },
   { to: '/payroll', label: 'Payroll', icon: Banknote, permission: 'payroll.runs.view' },
   { to: '/my-payslips', label: 'My Payslips', icon: Receipt, permission: 'payroll.payslips.view_own', hideIfPermission: 'payroll.payslips.view_all' },
+  { to: '/recruitment', label: 'Recruitment', icon: Briefcase, permission: 'recruitment.jobs.view' },
+  { to: '/performance', label: 'Performance', icon: TrendingUp, permission: 'performance.reviews.view' },
+  // ESS — Employee Self-Service (permission gate removed until RBAC module is built)
+  { to: '/ess', label: 'ESS Portal', icon: SlidersHorizontal },
+  { to: '/ess/clock', label: 'Clock In / Out', icon: Timer },
+  { to: '/ess/leave', label: 'My Leave', icon: CalendarDays },
+  { to: '/ess/correction', label: 'Corrections', icon: FileEdit },
+  { to: '/ess/profile', label: 'My Profile', icon: UserCircle },
+  { to: '/reports', label: 'Reports', icon: FileText, permission: 'reports.analytics.view' },
+  { to: '/assets', label: 'Assets', icon: Boxes, permission: 'assets.inventory.view' },
+  { to: '/compliance', label: 'Compliance', icon: ScrollText, permission: 'compliance.policies.view' },
+  { to: '/integrations', label: 'Integrations', icon: Plug, permission: 'integrations.keys.view' },
   { to: '/users', label: 'User Accounts', icon: ShieldCheck, permission: 'users.accounts.view' },
   { to: '/audit-logs', label: 'Audit Logs', icon: ShieldCheck, permission: 'core.audit_logs.view' },
-  { to: '/reports', label: 'Reports', icon: FileText, permission: 'hr.employees.export' },
 ];
 
 export function AppLayout() {

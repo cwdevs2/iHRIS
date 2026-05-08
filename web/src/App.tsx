@@ -29,7 +29,18 @@ import { PayrollRunDetailPage } from '@/pages/payroll/PayrollRunDetailPage';
 import { PayslipDetailPage } from '@/pages/payroll/PayslipDetailPage';
 import { MyPayslipsPage } from '@/pages/payroll/MyPayslipsPage';
 import { ForbiddenPage } from '@/pages/common/ForbiddenPage';
-import { PlaceholderPage } from '@/pages/common/PlaceholderPage';
+import { EssDashboardPage } from '@/pages/ess/EssDashboardPage';
+import { RecruitmentPage } from '@/pages/recruitment/RecruitmentPage';
+import { ApplicantDetailPage } from '@/pages/recruitment/ApplicantDetailPage';
+import { PerformancePage } from '@/pages/performance/PerformancePage';
+import { EssClockPage } from '@/pages/ess/EssClockPage';
+import { EssLeavePage } from '@/pages/ess/EssLeavePage';
+import { EssCorrectionPage } from '@/pages/ess/EssCorrectionPage';
+import { EssProfilePage } from '@/pages/ess/EssProfilePage';
+import { ReportsPage } from '@/pages/reports/ReportsPage';
+import { AssetsPage } from '@/pages/assets/AssetsPage';
+import { CompliancePage } from '@/pages/compliance/CompliancePage';
+import { IntegrationsPage } from '@/pages/integrations/IntegrationsPage';
 
 function BootGate({ children }: { children: React.ReactNode }) {
   const { isReady } = useBootstrapAuth();
@@ -211,6 +222,33 @@ function AppRouter() {
         />
 
         <Route
+          path="recruitment"
+          element={
+            <RequirePermission permission="recruitment.jobs.view">
+              <RecruitmentPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="recruitment/applicants/:id"
+          element={
+            <RequirePermission permission="recruitment.applicants.view">
+              <ApplicantDetailPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="performance"
+          element={
+            <RequirePermission permission="performance.reviews.view">
+              <PerformancePage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
           path="audit-logs"
           element={
             <RequirePermission permission="core.audit_logs.view">
@@ -222,15 +260,45 @@ function AppRouter() {
         <Route
           path="reports"
           element={
-            <RequirePermission permission="hr.employees.export">
-              <PlaceholderPage
-                title="Reports"
-                description="HR analytics, scheduled exports, and compliance reports."
-                phase="Phase 7 — Reporting & Hardening"
-              />
+            <RequirePermission permission="reports.analytics.view">
+              <ReportsPage />
             </RequirePermission>
           }
         />
+
+        <Route
+          path="assets"
+          element={
+            <RequirePermission permission="assets.inventory.view">
+              <AssetsPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="compliance"
+          element={
+            <RequirePermission permission="compliance.policies.view">
+              <CompliancePage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="integrations"
+          element={
+            <RequirePermission permission="integrations.keys.view">
+              <IntegrationsPage />
+            </RequirePermission>
+          }
+        />
+
+        {/* ESS — Employee Self-Service (open to all auth users until RBAC module) */}
+        <Route path="ess" element={<EssDashboardPage />} />
+        <Route path="ess/clock" element={<EssClockPage />} />
+        <Route path="ess/leave" element={<EssLeavePage />} />
+        <Route path="ess/correction" element={<EssCorrectionPage />} />
+        <Route path="ess/profile" element={<EssProfilePage />} />
 
         <Route path="forbidden" element={<ForbiddenPage />} />
       </Route>

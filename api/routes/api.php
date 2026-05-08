@@ -4,11 +4,34 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\RoleController;
+use App\Http\Controllers\Api\V1\Assets\AssetController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\MfaController;
+use App\Http\Controllers\Api\V1\Compliance\FilingController;
+use App\Http\Controllers\Api\V1\Compliance\PolicyController;
 use App\Http\Controllers\Api\V1\Employee\DocumentController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeController;
+use App\Http\Controllers\Api\V1\Ess\EssAttendanceController;
+use App\Http\Controllers\Api\V1\Ess\EssLeaveController;
+use App\Http\Controllers\Api\V1\Ess\EssProfileController;
+use App\Http\Controllers\Api\V1\Integrations\AccountingWebhookController;
+use App\Http\Controllers\Api\V1\Integrations\ApiKeyController;
+use App\Http\Controllers\Api\V1\Integrations\BiometricWebhookController;
+use App\Http\Controllers\Api\V1\Integrations\IntegrationLogController;
+use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
+use App\Http\Controllers\Api\V1\Reports\ReportsController;
+use App\Http\Controllers\Api\V1\Performance\GoalController;
+use App\Http\Controllers\Api\V1\Performance\PerformanceAnalyticsController;
+use App\Http\Controllers\Api\V1\Performance\ReviewController;
+use App\Http\Controllers\Api\V1\Performance\ReviewCycleController;
+use App\Http\Controllers\Api\V1\Recruitment\ApplicantController;
+use App\Http\Controllers\Api\V1\Recruitment\EvaluationController;
+use App\Http\Controllers\Api\V1\Recruitment\InterviewController;
+use App\Http\Controllers\Api\V1\Recruitment\JobPostingController;
+use App\Http\Controllers\Api\V1\Recruitment\JobRequisitionController;
+use App\Http\Controllers\Api\V1\Recruitment\OfferLetterController;
+use App\Http\Controllers\Api\V1\Recruitment\RecruitmentAnalyticsController;
 use App\Http\Controllers\Api\V1\Organization\DepartmentController;
 use App\Http\Controllers\Api\V1\Payroll\ComplianceReportController;
 use App\Http\Controllers\Api\V1\Payroll\FinalPayController;
@@ -238,4 +261,226 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('permission:payroll.final_pay.manage')
             ->post('/final-pay/compute', [FinalPayController::class, 'compute'])->name('payroll.final_pay.compute');
     });
+
+    // ── Phase 5: ESS Portal ─────────────────────────────────────────────────
+    // All ESS routes require the user to have an employee record linked.
+    // Permission `ess.self.access` is assigned to the Employee role by default.
+
+    Route::prefix('ess')->middleware('permission:ess.self.access')->group(function () {
+        // Attendance
+        Route::get('/attendance',             [EssAttendanceController::class, 'index']);
+        Route::get('/attendance/today',       [EssAttendanceController::class, 'today']);
+        Route::post('/attendance/clock-in',   [EssAttendanceController::class, 'clockIn']);
+        Route::post('/attendance/clock-out',  [EssAttendanceController::class, 'clockOut']);
+        Route::get('/attendance/corrections', [EssAttendanceController::class, 'corrections']);
+        Route::post('/attendance/corrections',[EssAttendanceController::class, 'fileCorrection']);
+
+        // Leave
+        Route::get('/leave/types',    [EssLeaveController::class, 'types']);
+        Route::get('/leave/balances', [EssLeaveController::class, 'balances']);
+        Route::get('/leave',          [EssLeaveController::class, 'index']);
+        Route::post('/leave',         [EssLeaveController::class, 'store']);
+        Route::delete('/leave/{id}',  [EssLeaveController::class, 'cancel']);
+
+        // Profile
+        Route::get('/profile',                        [EssProfileController::class, 'show']);
+        Route::get('/profile/update-requests',        [EssProfileController::class, 'updateRequests']);
+        Route::post('/profile/update-requests',       [EssProfileController::class, 'requestUpdate']);
+    });
+
+    // ── Phase 6: Recruitment ────────────────────────────────────────────────
+
+    Route::prefix('recruitment')->group(function () {
+        // Job Requisitions
+        Route::middleware('permission:recruitment.jobs.view')->group(function () {
+            Route::get('/requisitions',        [JobRequisitionController::class, 'index'])->name('recruitment.requisitions.index');
+            Route::get('/requisitions/{id}',   [JobRequisitionController::class, 'show'])->name('recruitment.requisitions.show');
+        });
+        Route::middleware('permission:recruitment.jobs.manage')->group(function () {
+            Route::post('/requisitions',             [JobRequisitionController::class, 'store'])->name('recruitment.requisitions.store');
+            Route::patch('/requisitions/{id}',       [JobRequisitionController::class, 'update'])->name('recruitment.requisitions.update');
+            Route::post('/requisitions/{id}/approve',[JobRequisitionController::class, 'approve'])->name('recruitment.requisitions.approve');
+        });
+
+        // Job Postings
+        Route::middleware('permission:recruitment.jobs.view')->group(function () {
+            Route::get('/postings',       [JobPostingController::class, 'index'])->name('recruitment.postings.index');
+            Route::get('/postings/{id}',  [JobPostingController::class, 'show'])->name('recruitment.postings.show');
+        });
+        Route::middleware('permission:recruitment.jobs.manage')->group(function () {
+            Route::post('/postings',        [JobPostingController::class, 'store'])->name('recruitment.postings.store');
+            Route::patch('/postings/{id}',  [JobPostingController::class, 'update'])->name('recruitment.postings.update');
+        });
+
+        // Applicants
+        Route::middleware('permission:recruitment.applicants.view')->group(function () {
+            Route::get('/applicants',       [ApplicantController::class, 'index'])->name('recruitment.applicants.index');
+            Route::get('/applicants/{id}',  [ApplicantController::class, 'show'])->name('recruitment.applicants.show');
+        });
+        Route::middleware('permission:recruitment.applicants.manage')->group(function () {
+            Route::post('/applicants',                    [ApplicantController::class, 'store'])->name('recruitment.applicants.store');
+            Route::patch('/applicants/{id}/stage',        [ApplicantController::class, 'advanceStage'])->name('recruitment.applicants.stage');
+            Route::post('/applicants/{id}/resume',        [ApplicantController::class, 'uploadResume'])->name('recruitment.applicants.resume');
+        });
+
+        // Interviews
+        Route::middleware('permission:recruitment.applicants.manage')->group(function () {
+            Route::post('/interviews',        [InterviewController::class, 'store'])->name('recruitment.interviews.store');
+            Route::patch('/interviews/{id}',  [InterviewController::class, 'update'])->name('recruitment.interviews.update');
+        });
+
+        // Evaluations
+        Route::middleware('permission:recruitment.applicants.manage')
+            ->post('/evaluations', [EvaluationController::class, 'store'])->name('recruitment.evaluations.store');
+
+        // Offer Letters
+        Route::middleware('permission:recruitment.jobs.manage')->group(function () {
+            Route::post('/offers',              [OfferLetterController::class, 'store'])->name('recruitment.offers.store');
+            Route::patch('/offers/{id}/status', [OfferLetterController::class, 'updateStatus'])->name('recruitment.offers.status');
+        });
+
+        // Analytics
+        Route::middleware('permission:recruitment.jobs.view')
+            ->get('/analytics', [RecruitmentAnalyticsController::class, 'index'])->name('recruitment.analytics');
+    });
+
+    // ── Phase 6: Performance ────────────────────────────────────────────────
+
+    Route::prefix('performance')->group(function () {
+        // Cycles
+        Route::middleware('permission:performance.reviews.view')->group(function () {
+            Route::get('/cycles',       [ReviewCycleController::class, 'index'])->name('performance.cycles.index');
+            Route::get('/cycles/{id}',  [ReviewCycleController::class, 'show'])->name('performance.cycles.show');
+        });
+        Route::middleware('permission:performance.reviews.manage')->group(function () {
+            Route::post('/cycles',                       [ReviewCycleController::class, 'store'])->name('performance.cycles.store');
+            Route::patch('/cycles/{id}',                 [ReviewCycleController::class, 'update'])->name('performance.cycles.update');
+            Route::post('/cycles/{id}/activate',         [ReviewCycleController::class, 'activate'])->name('performance.cycles.activate');
+            Route::post('/cycles/{id}/close',            [ReviewCycleController::class, 'close'])->name('performance.cycles.close');
+            Route::post('/cycles/{id}/initiate-reviews', [ReviewCycleController::class, 'initiateReviews'])->name('performance.cycles.initiate');
+        });
+
+        // Goals
+        Route::middleware('permission:performance.reviews.view')->group(function () {
+            Route::get('/goals', [GoalController::class, 'index'])->name('performance.goals.index');
+        });
+        Route::middleware('permission:performance.reviews.manage')->group(function () {
+            Route::post('/goals',         [GoalController::class, 'store'])->name('performance.goals.store');
+            Route::patch('/goals/{id}',   [GoalController::class, 'update'])->name('performance.goals.update');
+            Route::delete('/goals/{id}',  [GoalController::class, 'destroy'])->name('performance.goals.destroy');
+        });
+
+        // Reviews
+        Route::middleware('permission:performance.reviews.view')->group(function () {
+            Route::get('/reviews',       [ReviewController::class, 'index'])->name('performance.reviews.index');
+            Route::get('/reviews/{id}',  [ReviewController::class, 'show'])->name('performance.reviews.show');
+        });
+        Route::middleware('permission:performance.reviews.manage')->group(function () {
+            Route::post('/reviews/{id}/submit',       [ReviewController::class, 'submit'])->name('performance.reviews.submit');
+            Route::post('/reviews/{id}/acknowledge',  [ReviewController::class, 'acknowledge'])->name('performance.reviews.acknowledge');
+        });
+
+        // Analytics
+        Route::middleware('permission:performance.reviews.view')
+            ->get('/analytics', [PerformanceAnalyticsController::class, 'index'])->name('performance.analytics');
+    });
+
+    // ── Phase 7: Reports & Analytics ────────────────────────────────────────
+
+    Route::prefix('reports')->middleware('permission:reports.analytics.view')->group(function () {
+        Route::get('/summary', [ReportsController::class, 'summary'])->name('reports.summary');
+        Route::get('/employees', [ReportsController::class, 'employees'])->name('reports.employees');
+        Route::get('/attendance', [ReportsController::class, 'attendance'])->name('reports.attendance');
+        Route::get('/leaves', [ReportsController::class, 'leaves'])->name('reports.leaves');
+        Route::get('/payroll-register', [ReportsController::class, 'payrollRegister'])->name('reports.payroll_register');
+        Route::get('/recruitment', [ReportsController::class, 'recruitment'])->name('reports.recruitment');
+        Route::get('/performance', [ReportsController::class, 'performance'])->name('reports.performance');
+
+        Route::middleware('permission:reports.analytics.export')
+            ->get('/{type}/export', [ReportsController::class, 'export'])->name('reports.export');
+    });
+
+    // ── Phase 7: Asset Management ───────────────────────────────────────────
+
+    Route::prefix('assets')->group(function () {
+        Route::middleware('permission:assets.inventory.view')->group(function () {
+            Route::get('/', [AssetController::class, 'index'])->name('assets.index');
+            Route::get('/categories', [AssetController::class, 'categories'])->name('assets.categories.index');
+            Route::get('/{id}', [AssetController::class, 'show'])->name('assets.show');
+        });
+        Route::middleware('permission:assets.inventory.manage')->group(function () {
+            Route::post('/', [AssetController::class, 'store'])->name('assets.store');
+            Route::patch('/{id}', [AssetController::class, 'update'])->name('assets.update');
+            Route::post('/{id}/retire', [AssetController::class, 'retire'])->name('assets.retire');
+            Route::post('/categories', [AssetController::class, 'storeCategory'])->name('assets.categories.store');
+        });
+        Route::middleware('permission:assets.assignments.manage')->group(function () {
+            Route::post('/{id}/assign', [AssetController::class, 'assign'])->name('assets.assign');
+            Route::post('/assignments/{assignmentId}/return', [AssetController::class, 'returnAsset'])->name('assets.return');
+        });
+        Route::middleware('permission:assets.maintenance.manage')
+            ->post('/{id}/maintenance', [AssetController::class, 'logMaintenance'])->name('assets.maintenance.log');
+    });
+
+    // ── Phase 7: Compliance Management ──────────────────────────────────────
+
+    Route::prefix('compliance')->group(function () {
+        // Policies
+        Route::middleware('permission:compliance.policies.view')->group(function () {
+            Route::get('/policies', [PolicyController::class, 'index'])->name('compliance.policies.index');
+            Route::get('/policies/{id}', [PolicyController::class, 'show'])->name('compliance.policies.show');
+            Route::get('/coverage', [PolicyController::class, 'coverage'])->name('compliance.coverage');
+        });
+        Route::middleware('permission:compliance.policies.manage')->group(function () {
+            Route::post('/policies', [PolicyController::class, 'store'])->name('compliance.policies.store');
+            Route::patch('/policies/{id}', [PolicyController::class, 'update'])->name('compliance.policies.update');
+            Route::post('/policies/{id}/publish', [PolicyController::class, 'publish'])->name('compliance.policies.publish');
+        });
+        // Acknowledgement is open to any employee with the dedicated permission.
+        Route::middleware('permission:compliance.policies.acknowledge')
+            ->post('/policies/{id}/acknowledge', [PolicyController::class, 'acknowledge'])->name('compliance.policies.acknowledge');
+
+        // Filings
+        Route::middleware('permission:compliance.filings.view')
+            ->get('/filings', [FilingController::class, 'index'])->name('compliance.filings.index');
+        Route::middleware('permission:compliance.filings.manage')->group(function () {
+            Route::post('/filings', [FilingController::class, 'store'])->name('compliance.filings.store');
+            Route::patch('/filings/{id}/file', [FilingController::class, 'markFiled'])->name('compliance.filings.file');
+        });
+    });
+
+    // ── Phase 7: API Integrations (admin management) ────────────────────────
+
+    Route::prefix('integrations')->group(function () {
+        Route::middleware('permission:integrations.keys.view')
+            ->get('/keys', [ApiKeyController::class, 'index'])->name('integrations.keys.index');
+        Route::middleware('permission:integrations.keys.manage')->group(function () {
+            Route::post('/keys', [ApiKeyController::class, 'store'])->name('integrations.keys.store');
+            Route::delete('/keys/{id}', [ApiKeyController::class, 'destroy'])->name('integrations.keys.destroy');
+        });
+
+        Route::middleware('permission:integrations.webhooks.view')->group(function () {
+            Route::get('/webhooks', [WebhookController::class, 'index'])->name('integrations.webhooks.index');
+            Route::get('/webhooks/{id}', [WebhookController::class, 'show'])->name('integrations.webhooks.show');
+        });
+        Route::middleware('permission:integrations.webhooks.manage')->group(function () {
+            Route::post('/webhooks', [WebhookController::class, 'store'])->name('integrations.webhooks.store');
+            Route::delete('/webhooks/{id}', [WebhookController::class, 'destroy'])->name('integrations.webhooks.destroy');
+        });
+
+        Route::middleware('permission:integrations.logs.view')
+            ->get('/logs', [IntegrationLogController::class, 'index'])->name('integrations.logs.index');
+    });
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// Phase 7: Inbound integration endpoints (API-key authenticated, NOT session)
+// ──────────────────────────────────────────────────────────────────────────
+
+Route::middleware('apikey:attendance:write')
+    ->post('/integrations/biometric/events', [BiometricWebhookController::class, 'ingest'])
+    ->name('integrations.biometric.ingest');
+
+Route::middleware('apikey:payroll:read')
+    ->post('/integrations/accounting/preview', [AccountingWebhookController::class, 'preview'])
+    ->name('integrations.accounting.preview');

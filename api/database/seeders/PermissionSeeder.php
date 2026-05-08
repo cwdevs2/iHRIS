@@ -95,7 +95,47 @@ class PermissionSeeder extends Seeder
         ['payroll', 'thirteenth_month', 'manage', 'Generate 13th-month payroll runs'],
 
         // ESS
-        ['ess', 'self', 'view', 'Access self-service portal'],
+        ['ess', 'self', 'access', 'Access self-service portal'],
+
+        // Recruitment
+        ['recruitment', 'jobs', 'view', 'View job requisitions and postings'],
+        ['recruitment', 'jobs', 'create', 'Create job requisitions and postings'],
+        ['recruitment', 'jobs', 'approve', 'Approve or reject job requisitions'],
+        ['recruitment', 'applicants', 'view', 'View applicant pipeline'],
+        ['recruitment', 'applicants', 'manage', 'Manage applicants (advance stage, upload resume)'],
+        ['recruitment', 'offers', 'manage', 'Generate and manage offer letters'],
+
+        // Performance
+        ['performance', 'cycles', 'manage', 'Create and manage review cycles'],
+        ['performance', 'goals', 'manage', 'Create and manage performance goals'],
+        ['performance', 'reviews', 'view', 'View performance reviews'],
+        ['performance', 'reviews', 'manage', 'Submit and manage performance reviews'],
+
+        // ── Phase 7 ──────────────────────────────────────────────────────────
+
+        // Reports & Analytics
+        ['reports', 'analytics', 'view', 'View reports & analytics dashboard'],
+        ['reports', 'analytics', 'export', 'Export reports (Excel / CSV / PDF)'],
+
+        // Asset Management
+        ['assets', 'inventory', 'view', 'View asset inventory'],
+        ['assets', 'inventory', 'manage', 'Create, edit, and retire assets'],
+        ['assets', 'assignments', 'manage', 'Assign and return assets'],
+        ['assets', 'maintenance', 'manage', 'Log and schedule asset maintenance'],
+
+        // Compliance Management
+        ['compliance', 'policies', 'view', 'View company policies'],
+        ['compliance', 'policies', 'manage', 'Publish and version company policies'],
+        ['compliance', 'policies', 'acknowledge', 'Acknowledge policies (employee)'],
+        ['compliance', 'filings', 'view', 'View regulatory filing reminders'],
+        ['compliance', 'filings', 'manage', 'Manage regulatory filing schedules'],
+
+        // API Integration & Webhooks
+        ['integrations', 'keys', 'view', 'View API keys'],
+        ['integrations', 'keys', 'manage', 'Create and revoke API keys'],
+        ['integrations', 'webhooks', 'view', 'View webhook subscriptions and deliveries'],
+        ['integrations', 'webhooks', 'manage', 'Manage webhook subscriptions'],
+        ['integrations', 'logs', 'view', 'View integration request logs'],
     ];
 
     public function run(): void

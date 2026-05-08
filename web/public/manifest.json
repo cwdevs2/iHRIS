@@ -1,0 +1,35 @@
+{
+  "name": "iHRIS — Human Resource Portal",
+  "short_name": "iHRIS",
+  "description": "Employee self-service portal: attendance, leaves, and payslips.",
+  "theme_color": "#0891B2",
+  "background_color": "#f8fafc",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/ess",
+  "scope": "/",
+  "lang": "en-PH",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Clock In / Out",
+      "short_name": "Clock",
+      "url": "/ess/clock",
+      "description": "Record your daily attendance"
+    },
+    {
+      "name": "My Leave",
+      "short_name": "Leave",
+      "url": "/ess/leave",
+      "description": "View balances and file leave requests"
+    }
+  ]
+}

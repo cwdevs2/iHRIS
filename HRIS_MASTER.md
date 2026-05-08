@@ -809,12 +809,12 @@ Job Requisition → Job Posting → Application → Screening → Interview → 
 
 **Goal:** Attract, hire, and evaluate talent.
 
-- [ ] Recruitment Module (requisition → pipeline → hire)
+- [x] Recruitment Module (requisition → pipeline → hire)
 - [ ] Applicant Portal (public-facing)
-- [ ] Offer Letter Generator
-- [ ] Performance Module (KPIs, evaluations, reviews)
+- [x] Offer Letter Generator
+- [x] Performance Module (KPIs, evaluations, reviews)
 - [ ] 360-Degree Peer Review
-- [ ] Performance Analytics
+- [x] Performance Analytics
 
 **Deliverables:** Full recruitment-to-performance loop
 
@@ -824,18 +824,27 @@ Job Requisition → Job Posting → Application → Screening → Interview → 
 
 **Goal:** Production-ready system with analytics and external integrations.
 
-- [ ] Reports & Analytics Module (all report types)
-- [ ] Scheduled Report Delivery
-- [ ] API Integration Module
-- [ ] Biometric Device Integration
-- [ ] Accounting Software Webhook
-- [ ] Asset Management Module
-- [ ] Compliance Management Module
-- [ ] Security hardening (penetration test checklist)
-- [ ] Performance optimization (query optimization, index review)
-- [ ] Load testing
+- [x] Reports & Analytics Module (all report types)
+- [ ] Scheduled Report Delivery — *deferred (manual trigger + CSV export shipped)*
+- [x] API Integration Module (API keys, webhook subscriptions, rate-limit middleware, integration log)
+- [x] Biometric Device Integration *(vendor-neutral receiver; ZKTeco/Suprema/HikVision adapters stubbed)*
+- [x] Accounting Software Webhook *(preview endpoint; QuickBooks/Xero/SAP push stubbed)*
+- [x] Asset Management Module
+- [x] Compliance Management Module
+- [x] Security hardening (security headers middleware, API throttle, HMAC webhook signing, [pen-test checklist](docs/PHASE_7_HARDENING.md))
+- [x] Performance optimization (composite indexes on hot lookups, eager loading on listing services)
+- [ ] Load testing — *deferred to staging environment ([plan](docs/PHASE_7_HARDENING.md#9-load-testing-plan-deferred-to-staging))*
 
-**Deliverables:** Production-ready, fully integrated HRIS
+**Deliverables:** Production-ready HRIS with cross-module reporting, vendor-neutral integration scaffolding, asset & compliance management, and a documented hardening posture.
+
+**Status (2026-05-08):** ✅ Phase 7 in-app modules complete.
+- 3 migrations adding 11 tables (assets, compliance, integrations)
+- 11 new models, 8 services, 9 controllers, 5 API resources
+- ~50 new API routes (reports, assets, compliance, integrations) + 2 inbound webhook receivers
+- 19 new permissions seeded across `reports`, `assets`, `compliance`, `integrations` modules
+- 4 new frontend page sets: Reports hub + 6 drilldowns, Assets list + dialogs, Compliance (policies + filings tabs), Integrations (keys + webhooks + logs tabs)
+- 2 new middleware: `AuthenticateApiKey` (with per-key rate limiting + audit log), `SecurityHeaders`
+- Full vendor adapter docs in [docs/PHASE_7_HARDENING.md](docs/PHASE_7_HARDENING.md)
 
 ## 6. Claude Code Master Prompt
 

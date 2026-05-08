@@ -57,23 +57,26 @@ class RoleSeeder extends Seeder
 
         // HR admin: full HR + employee management; not role/permission management.
         $hrAdmin->permissions()->sync(Permission::query()
-            ->whereIn('module', ['hr', 'attendance', 'leaves', 'payroll', 'ess'])
+            ->whereIn('module', ['hr', 'attendance', 'leaves', 'payroll', 'ess', 'recruitment', 'performance', 'reports', 'assets', 'compliance', 'integrations'])
             ->orWhere(fn ($q) => $q->where('module', 'core')->whereIn('feature', ['users', 'audit_logs']))
             ->pluck('id'));
 
-        // Manager: view team data, approve requests, ESS, view payroll (read-only).
+        // Manager: view team data, approve requests, ESS, view payroll (read-only), performance.
         $manager->permissions()->sync(Permission::query()
             ->where(fn ($q) => $q->whereIn('module', ['hr', 'attendance'])->where('action', 'view'))
             ->orWhere(fn ($q) => $q->where('module', 'leaves'))
             ->orWhere('module', 'ess')
             ->orWhere(fn ($q) => $q->where('module', 'payroll')->whereIn('action', ['view', 'view_own']))
+            ->orWhere(fn ($q) => $q->where('module', 'recruitment')->whereIn('action', ['view']))
+            ->orWhere(fn ($q) => $q->where('module', 'performance'))
             ->pluck('id'));
 
-        // Employee: ESS only + own payslip.
+        // Employee: ESS only + own payslip + can acknowledge policies that target them.
         $employee->permissions()->sync(Permission::query()
             ->where('module', 'ess')
             ->orWhere(fn ($q) => $q->where('module', 'payroll')->where('action', 'view_own'))
             ->orWhere(fn ($q) => $q->where('module', 'leaves')->whereIn('action', ['view', 'create']))
+            ->orWhere(fn ($q) => $q->where('module', 'compliance')->where('feature', 'policies')->where('action', 'acknowledge'))
             ->pluck('id'));
     }
 }

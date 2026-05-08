@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -25,7 +27,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => EnsurePermission::class,
             'role' => EnsureRole::class,
+            'apikey' => AuthenticateApiKey::class,
         ]);
+
+        // Apply security headers to every API response.
+        $middleware->api(append: [SecurityHeaders::class]);
+
+        // Per-IP throttle on auth endpoints to slow brute-force attempts.
+        $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (ValidationException $e, Request $request) {

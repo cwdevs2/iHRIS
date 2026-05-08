@@ -20,6 +20,10 @@ class DatabaseSeeder extends Seeder
             PagibigSettingSeeder::class,
             BirTaxBracketSeeder::class,
             HolidaySeeder::class,
+            // Phase 5 — ESS
+            LeaveTypeSeeder::class,
+            // Phase 7 — Asset Management
+            AssetCategorySeeder::class,
         ]);
     }
 }
