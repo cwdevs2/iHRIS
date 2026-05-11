@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\RoleController;
 use App\Http\Controllers\Api\V1\Assets\AssetController;
+use App\Http\Controllers\Api\V1\Attendance\AdminAttendanceController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\MfaController;
 use App\Http\Controllers\Api\V1\Compliance\FilingController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\V1\Integrations\ApiKeyController;
 use App\Http\Controllers\Api\V1\Integrations\BiometricWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\IntegrationLogController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
+use App\Http\Controllers\Api\V1\Leaves\AdminLeaveController;
 use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Reports\ReportsController;
 use App\Http\Controllers\Api\V1\Performance\GoalController;
@@ -286,6 +288,37 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile',                        [EssProfileController::class, 'show']);
         Route::get('/profile/update-requests',        [EssProfileController::class, 'updateRequests']);
         Route::post('/profile/update-requests',       [EssProfileController::class, 'requestUpdate']);
+    });
+
+    // ── Admin Attendance Management ─────────────────────────────────────────
+
+    Route::prefix('admin/attendance')->group(function () {
+        Route::middleware('permission:attendance.logs.view')->group(function () {
+            Route::get('/',            [AdminAttendanceController::class, 'index']);
+            Route::get('/corrections', [AdminAttendanceController::class, 'corrections']);
+        });
+        Route::middleware('permission:attendance.logs.manage')->group(function () {
+            Route::post('/manual',                          [AdminAttendanceController::class, 'manual']);
+            Route::patch('/corrections/{id}/approve',       [AdminAttendanceController::class, 'approveCorrection']);
+            Route::patch('/corrections/{id}/reject',        [AdminAttendanceController::class, 'rejectCorrection']);
+        });
+    });
+
+    // ── Admin Leave Management ──────────────────────────────────────────────
+
+    Route::prefix('admin/leave')->group(function () {
+        Route::middleware('permission:leaves.requests.view')->group(function () {
+            Route::get('/',        [AdminLeaveController::class, 'index']);
+            Route::get('/types',   [AdminLeaveController::class, 'types']);
+            Route::get('/balances',[AdminLeaveController::class, 'balances']);
+        });
+        Route::middleware('permission:leaves.requests.manage')->group(function () {
+            Route::post('/{id}/approve',       [AdminLeaveController::class, 'approve']);
+            Route::post('/{id}/reject',        [AdminLeaveController::class, 'reject']);
+            Route::patch('/balances/{id}',     [AdminLeaveController::class, 'adjustBalance']);
+            Route::post('/types',              [AdminLeaveController::class, 'storeType']);
+            Route::patch('/types/{id}',        [AdminLeaveController::class, 'updateType']);
+        });
     });
 
     // ── Phase 6: Recruitment ────────────────────────────────────────────────

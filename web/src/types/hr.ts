@@ -116,6 +116,10 @@ export interface Employee {
   tin?: string | null;
   basic_salary?: string | null;
   pay_frequency: PayFrequency | null;
+  shift_type: 'day' | 'evening' | 'night' | 'custom' | null;
+  shift_start: string | null; // "HH:mm"
+  shift_end: string | null;   // "HH:mm"
+  work_days: string[] | null; // ["mon","tue","wed","thu","fri"]
   emergency_contact: EmergencyContact | null;
   created_at: string;
   updated_at: string;

@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-11T06:14:03.700Z",
+  "projectRoot": "D:\\XAMPP\\htdocs\\iHRIS",
+  "structure": {
+    "hasPackageJson": false,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1778480043700
+}

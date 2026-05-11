@@ -49,6 +49,10 @@ export type CreateEmployeeInput = {
   tin?: string | null;
   basic_salary?: number | null;
   pay_frequency?: string | null;
+  shift_type?: 'day' | 'evening' | 'night' | 'custom' | null;
+  shift_start?: string | null;
+  shift_end?: string | null;
+  work_days?: string[] | null;
   emergency_contact?: {
     name?: string;
     relationship?: string;

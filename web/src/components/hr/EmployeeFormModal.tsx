@@ -36,6 +36,11 @@ const schema = z.object({
     z.number().min(0).nullable().optional(),
   ),
   pay_frequency: z.enum(['monthly', 'semi_monthly', 'weekly', 'daily']).nullable().optional(),
+  // Work schedule
+  shift_type: z.enum(['day', 'evening', 'night', 'custom']).nullable().optional(),
+  shift_start: z.string().nullable().optional(),
+  shift_end: z.string().nullable().optional(),
+  work_days: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])).nullable().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -116,6 +121,10 @@ export function EmployeeFormModal({ open, onClose, employee }: Props) {
         province: employee.province ?? undefined,
         basic_salary: employee.basic_salary ? Number(employee.basic_salary) : undefined,
         pay_frequency: employee.pay_frequency ?? 'semi_monthly',
+        shift_type: employee.shift_type ?? undefined,
+        shift_start: employee.shift_start ?? undefined,
+        shift_end: employee.shift_end ?? undefined,
+        work_days: employee.work_days ?? ['mon', 'tue', 'wed', 'thu', 'fri'],
       });
     } else {
       reset({
@@ -127,6 +136,10 @@ export function EmployeeFormModal({ open, onClose, employee }: Props) {
         employment_status: 'probationary',
         nationality: 'Filipino',
         pay_frequency: 'semi_monthly',
+        shift_type: 'day',
+        shift_start: '08:00',
+        shift_end: '17:00',
+        work_days: ['mon', 'tue', 'wed', 'thu', 'fri'],
       });
     }
   }, [employee, reset, open]);
@@ -405,6 +418,44 @@ export function EmployeeFormModal({ open, onClose, employee }: Props) {
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="City / Municipality" {...register('city')} />
                     <Input label="Province" {...register('province')} />
+                  </div>
+                </fieldset>
+
+                {/* Work Schedule */}
+                <fieldset className="space-y-4">
+                  <legend className="text-sm font-semibold text-surface-700 uppercase tracking-wide">Work Schedule</legend>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-surface-700">Shift Type</label>
+                      <select
+                        {...register('shift_type')}
+                        className="rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="">— Select —</option>
+                        <option value="day">Day Shift</option>
+                        <option value="evening">Evening Shift</option>
+                        <option value="night">Night Shift</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </div>
+                    <Input label="Shift Start" type="time" {...register('shift_start')} />
+                    <Input label="Shift End" type="time" {...register('shift_end')} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-surface-700">Work Days</label>
+                    <div className="flex flex-wrap gap-3">
+                      {(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const).map((day) => (
+                        <label key={day} className="flex items-center gap-1.5 text-sm capitalize cursor-pointer">
+                          <input
+                            type="checkbox"
+                            value={day}
+                            {...register('work_days')}
+                            className="rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          {day.charAt(0).toUpperCase() + day.slice(1)}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </fieldset>
               </div>

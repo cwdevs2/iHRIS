@@ -290,3 +290,44 @@ The `source = 'qr'` value is reserved for QR-based clock-in via rotating time-ba
 - QR code generated per shift, refreshes every 5 minutes (based on TOTP-style time window)
 - Employee scans QR, which encodes `{location_id, time_window}` payload
 - Backend validates the time window is current before recording the log
+
+---
+
+## 14. Admin Attendance Management
+
+The Admin Attendance Management module (`GET /admin/attendance`) gives HR full visibility and control over attendance data.
+
+### Admin Endpoints (`/api/v1/admin/attendance`)
+
+| Method | Path | Permission | Description |
+|--------|------|-----------|-------------|
+| GET | `/admin/attendance` | `attendance.logs.manage` | List all logs with filters (`from`, `to`, `employee_id`, `status`) |
+| POST | `/admin/attendance/manual` | `attendance.logs.manage` | Create a manual attendance entry for any employee |
+| GET | `/admin/attendance/corrections` | `attendance.logs.manage` | List all correction requests with status filter |
+| PATCH | `/admin/attendance/corrections/{id}/approve` | `attendance.logs.manage` | Approve a correction request |
+| PATCH | `/admin/attendance/corrections/{id}/reject` | `attendance.logs.manage` | Reject a correction request |
+
+### Shift Configuration
+
+Employees have shift fields added via migration `2026_05_08_000004_add_shift_to_employees_table.php`:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `shift_type` | string (default: `day`) | `day`, `mid`, or `night` |
+| `shift_start` | time | Scheduled start time (e.g. `08:00:00`) |
+| `shift_end` | time | Scheduled end time (e.g. `17:00:00`) |
+| `work_days` | JSON | Array of day numbers (0=Sun–6=Sat) |
+
+These shift fields are editable in `EmployeeFormModal` (Work Schedule section) and are used to calculate late/undertime.
+
+### Admin Frontend
+
+**Page**: `web/src/pages/attendance/AdminAttendanceManagementPage.tsx`  
+**Route**: `/attendance/manage`
+
+**Tabs:**
+1. **Attendance Logs** — date range + employee search filter, view all logs with employee name, position, clock times, hours, status
+2. **Correction Requests** — filter by status (pending/approved/rejected/all), approve or reject with one click
+3. **Manual Entry** — form to create attendance record for any employee; fields: employee, date, clock in/out, status, remarks
+
+**Hooks**: `useAdminAttendance`, `useAdminCorrections`, `useApproveCorrection`, `useRejectCorrection`, `useManualAttendanceEntry` (all from `web/src/hooks/useAdminAttendance.ts`)

@@ -33,6 +33,13 @@ import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/cn';
 import { easeOutStrong } from '@/lib/motion';
+import {
+  useAdminAttendance,
+  useAdminCorrections,
+  useApproveCorrection,
+  useRejectCorrection,
+} from '@/hooks/useAdminAttendance';
+import type { AttendanceLog } from '@/types';
 
 /* ──────────────────────────────────────────────────────────────────
    Motion tokens
@@ -47,28 +54,8 @@ const itemVariants = {
 };
 
 /* ──────────────────────────────────────────────────────────────────
-   Mock data — replace with TanStack Query hooks when API ships
+   Static week bar-chart scaffold (rendered with real hours when available)
    ────────────────────────────────────────────────────────────────── */
-
-interface AttendanceLog {
-  id: string;
-  employee: { name: string; initials: string; position: string };
-  date: string;
-  clockIn: string | null;
-  clockOut: string | null;
-  hours: number;
-  status: 'present' | 'late' | 'undertime' | 'absent' | 'on_leave' | 'overtime';
-  location: 'on_site' | 'remote' | 'field';
-}
-
-const MOCK_LOGS: AttendanceLog[] = [
-  { id: '1', employee: { name: 'Camille Reyes', initials: 'CR', position: 'Senior Designer' }, date: '2026-05-07', clockIn: '08:54', clockOut: '17:32', hours: 8.6, status: 'present', location: 'on_site' },
-  { id: '2', employee: { name: 'Marco Villanueva', initials: 'MV', position: 'Engineering Lead' }, date: '2026-05-07', clockIn: '09:12', clockOut: '18:48', hours: 9.6, status: 'overtime', location: 'remote' },
-  { id: '3', employee: { name: 'Sofia Lim', initials: 'SL', position: 'HR Specialist' }, date: '2026-05-07', clockIn: '09:24', clockOut: '17:30', hours: 8.1, status: 'late', location: 'on_site' },
-  { id: '4', employee: { name: 'Daniel Cruz', initials: 'DC', position: 'Account Manager' }, date: '2026-05-07', clockIn: '08:48', clockOut: '16:12', hours: 7.4, status: 'undertime', location: 'on_site' },
-  { id: '5', employee: { name: 'Ana Bautista', initials: 'AB', position: 'Recruiter' }, date: '2026-05-07', clockIn: null, clockOut: null, hours: 0, status: 'on_leave', location: 'remote' },
-  { id: '6', employee: { name: 'Joaquin Garcia', initials: 'JG', position: 'Field Engineer' }, date: '2026-05-07', clockIn: '07:55', clockOut: '17:04', hours: 9.1, status: 'present', location: 'field' },
-];
 
 const WEEK_DATA = [
   { day: 'Mon', date: 'May 4', regular: 7.8, overtime: 0.4 },
@@ -88,12 +75,6 @@ const SCHEDULE_TODAY = {
   location: 'BGC HQ — Tower 3',
 };
 
-const PENDING_CORRECTIONS = [
-  { id: '1', name: 'Sofia Lim', date: 'May 6', reason: 'Forgot to clock out — left at 18:30', age: '2h ago' },
-  { id: '2', name: 'Daniel Cruz', date: 'May 5', reason: 'Biometric malfunction', age: '5h ago' },
-  { id: '3', name: 'Joaquin Garcia', date: 'May 5', reason: 'Field deployment — manual log', age: '1d ago' },
-];
-
 /* ──────────────────────────────────────────────────────────────────
    Page
    ────────────────────────────────────────────────────────────────── */
@@ -104,7 +85,7 @@ const TABS: { key: TabKey; label: string; icon: typeof Clock; count?: number }[]
   { key: 'overview', label: 'Overview', icon: TrendingUp },
   { key: 'logs', label: 'Daily Logs', icon: ListChecks },
   { key: 'schedule', label: 'Schedule', icon: CalendarRange },
-  { key: 'corrections', label: 'Corrections', icon: FileEdit, count: 3 },
+  { key: 'corrections', label: 'Corrections', icon: FileEdit, count: undefined },
 ];
 
 export function AttendancePage() {
@@ -114,6 +95,8 @@ export function AttendancePage() {
   const canExport = hasPermission('attendance.logs.export') || hasPermission('hr.employees.export');
 
   const [tab, setTab] = useState<TabKey>('overview');
+  const { data: correctionsData } = useAdminCorrections({ status: 'pending', per_page: 100 });
+  const pendingCount = correctionsData?.corrections?.length ?? 0;
 
   return (
     <motion.div
@@ -162,8 +145,9 @@ export function AttendancePage() {
         className="flex items-center gap-1 overflow-x-auto rounded-xl border border-surface-200 bg-surface-0 p-1"
         role="tablist"
       >
-        {TABS.map(({ key, label, icon: Icon, count }) => {
+        {TABS.map(({ key, label, icon: Icon }) => {
           const active = tab === key;
+          const count = key === 'corrections' ? (pendingCount > 0 ? pendingCount : undefined) : undefined;
           return (
             <button
               key={key}
@@ -814,14 +798,28 @@ function UpcomingCard() {
    Tab — Daily Logs
    ────────────────────────────────────────────────────────────────── */
 
+type LogStatus = NonNullable<AttendanceLog['status']>;
+
 function LogsTab() {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<AttendanceLog['status'] | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<LogStatus | 'all'>('all');
+  const today = dayjs().format('YYYY-MM-DD');
 
-  const filtered = MOCK_LOGS.filter((l) => {
-    if (statusFilter !== 'all' && l.status !== statusFilter) return false;
-    if (search && !l.employee.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
+  const { data, isLoading } = useAdminAttendance({
+    from: today,
+    to: today,
+    per_page: 100,
+    ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+  });
+
+  const logs = data?.logs ?? [];
+
+  const filtered = logs.filter((l) => {
+    if (!search) return true;
+    const name = l.employee
+      ? `${l.employee.user?.first_name ?? ''} ${l.employee.user?.last_name ?? ''}`.toLowerCase()
+      : '';
+    return name.includes(search.toLowerCase());
   });
 
   return (
@@ -841,16 +839,16 @@ function LogsTab() {
 
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as AttendanceLog['status'] | 'all')}
+          onChange={(e) => setStatusFilter(e.target.value as LogStatus | 'all')}
           className="h-10 rounded-lg border border-surface-200 bg-surface-0 px-3 text-sm text-surface-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-600/15"
         >
           <option value="all">All statuses</option>
           <option value="present">Present</option>
           <option value="late">Late</option>
           <option value="undertime">Undertime</option>
-          <option value="overtime">Overtime</option>
-          <option value="on_leave">On Leave</option>
           <option value="absent">Absent</option>
+          <option value="on_leave">On Leave</option>
+          <option value="holiday">Holiday</option>
         </select>
 
         <Button variant="secondary" size="md" leftIcon={<Filter className="h-4 w-4" />}>
@@ -858,7 +856,7 @@ function LogsTab() {
         </Button>
         <div className="ml-auto text-xs text-surface-500">
           Showing <span className="font-medium text-surface-900 tabular-nums">{filtered.length}</span> of{' '}
-          <span className="tabular-nums">{MOCK_LOGS.length}</span> records
+          <span className="tabular-nums">{logs.length}</span> records
         </div>
       </div>
 
@@ -879,7 +877,13 @@ function LogsTab() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-16 text-center text-sm text-surface-500">
+                    Loading attendance logs…
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
@@ -910,17 +914,31 @@ function LogsTab() {
 }
 
 function LogRow({ log }: { log: AttendanceLog }) {
+  const fullName = log.employee
+    ? `${log.employee.user?.first_name ?? ''} ${log.employee.user?.last_name ?? ''}`.trim()
+    : 'Unknown';
+  const initials = fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+  const position = log.employee?.position?.name ?? '—';
+  const clockIn = log.clock_in_at ? dayjs(log.clock_in_at).format('HH:mm') : null;
+  const clockOut = log.clock_out_at ? dayjs(log.clock_out_at).format('HH:mm') : null;
+  const hours = Number(log.regular_hours ?? 0) + Number(log.overtime_hours ?? 0);
   return (
     <tr className="border-b border-surface-50 transition-colors duration-200 last:border-0 hover:bg-surface-50">
       {/* Employee */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
-            {log.employee.initials}
+            {initials}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-surface-900">{log.employee.name}</p>
-            <p className="text-xs text-surface-500">{log.employee.position}</p>
+            <p className="truncate text-sm font-medium text-surface-900">{fullName}</p>
+            <p className="text-xs text-surface-500">{position}</p>
           </div>
         </div>
       </td>
@@ -929,14 +947,14 @@ function LogRow({ log }: { log: AttendanceLog }) {
       <td className="px-4 py-3">
         <span className="inline-flex items-center gap-1.5 rounded-md bg-cta-500/10 px-2 py-0.5 text-xs font-medium tabular-nums text-cta-700 ring-1 ring-inset ring-cta-500/15">
           <Play className="h-2.5 w-2.5" />
-          {log.clockIn ?? '—'}
+          {clockIn ?? '—'}
         </span>
       </td>
       <td className="px-4 py-3">
-        {log.clockOut ? (
+        {clockOut ? (
           <span className="inline-flex items-center gap-1.5 rounded-md bg-surface-100 px-2 py-0.5 text-xs font-medium tabular-nums text-surface-700 ring-1 ring-inset ring-surface-200">
             <Square className="h-2.5 w-2.5" />
-            {log.clockOut}
+            {clockOut}
           </span>
         ) : (
           <span className="text-xs text-surface-400">—</span>
@@ -946,7 +964,7 @@ function LogRow({ log }: { log: AttendanceLog }) {
       {/* Hours */}
       <td className="px-4 py-3">
         <span className="text-sm font-semibold tabular-nums text-surface-900">
-          {log.hours.toFixed(1)}
+          {hours.toFixed(1)}
           <span className="ml-0.5 text-xs font-normal text-surface-400">h</span>
         </span>
       </td>
@@ -969,7 +987,7 @@ function LogRow({ log }: { log: AttendanceLog }) {
         <button
           type="button"
           className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-surface-400 transition-colors duration-200 hover:bg-surface-100 hover:text-surface-900"
-          aria-label={`Open log for ${log.employee.name}`}
+          aria-label={`Open log for ${fullName}`}
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -978,17 +996,18 @@ function LogRow({ log }: { log: AttendanceLog }) {
   );
 }
 
-const STATUS_CFG: Record<AttendanceLog['status'], { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'brand' | 'default' }> = {
+const STATUS_CFG: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'brand' | 'default' }> = {
   present: { label: 'Present', variant: 'success' },
   late: { label: 'Late', variant: 'warning' },
   undertime: { label: 'Undertime', variant: 'danger' },
-  overtime: { label: 'Overtime', variant: 'brand' },
-  on_leave: { label: 'On Leave', variant: 'info' },
   absent: { label: 'Absent', variant: 'default' },
+  on_leave: { label: 'On Leave', variant: 'info' },
+  holiday: { label: 'Holiday', variant: 'brand' },
 };
 
-function StatusBadge({ status }: { status: AttendanceLog['status'] }) {
-  const c = STATUS_CFG[status];
+function StatusBadge({ status }: { status: string | null }) {
+  if (!status) return null;
+  const c = STATUS_CFG[status] ?? { label: status, variant: 'default' as const };
   return <Badge variant={c.variant}>{c.label}</Badge>;
 }
 
@@ -1103,6 +1122,11 @@ function ScheduleTab() {
    ────────────────────────────────────────────────────────────────── */
 
 function CorrectionsTab() {
+  const { data, isLoading } = useAdminCorrections({ status: 'pending', per_page: 50 });
+  const corrections = data?.corrections ?? [];
+  const approve = useApproveCorrection();
+  const reject = useRejectCorrection();
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
       <Card className="lg:col-span-8">
@@ -1112,34 +1136,63 @@ function CorrectionsTab() {
               <h3 className="text-base font-semibold tracking-tight text-surface-900">Pending corrections</h3>
               <p className="text-xs text-surface-500">Review and approve attendance edits</p>
             </div>
-            <Badge variant="warning">{PENDING_CORRECTIONS.length} pending</Badge>
+            <Badge variant="warning">{corrections.length} pending</Badge>
           </div>
 
-          <ul className="divide-y divide-surface-100">
-            {PENDING_CORRECTIONS.map((c) => (
-              <li
-                key={c.id}
-                className="group flex items-start gap-4 px-6 py-4 transition-colors duration-200 hover:bg-surface-50"
-              >
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
-                  {c.name.split(' ').map((p) => p[0]).join('')}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-surface-900">{c.name}</p>
-                    <span className="text-xs text-surface-400">·</span>
-                    <p className="text-xs text-surface-500">{c.date}</p>
-                  </div>
-                  <p className="mt-0.5 text-sm text-surface-600">{c.reason}</p>
-                  <p className="mt-1 text-xs text-surface-400">{c.age}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Button variant="ghost" size="sm">Decline</Button>
-                  <Button variant="cta" size="sm">Approve</Button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {isLoading ? (
+            <div className="px-6 py-12 text-center text-sm text-surface-500">Loading corrections…</div>
+          ) : corrections.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm font-medium text-surface-900">No pending corrections</p>
+              <p className="mt-1 text-xs text-surface-500">All caught up!</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-surface-100">
+              {corrections.map((c) => {
+                const empName = c.employee
+                  ? `${c.employee.user?.first_name ?? ''} ${c.employee.user?.last_name ?? ''}`.trim()
+                  : 'Unknown';
+                const initials = empName.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+                return (
+                  <li
+                    key={c.id}
+                    className="group flex items-start gap-4 px-6 py-4 transition-colors duration-200 hover:bg-surface-50"
+                  >
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
+                      {initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-surface-900">{empName}</p>
+                        <span className="text-xs text-surface-400">·</span>
+                        <p className="text-xs text-surface-500">{dayjs(c.work_date).format('MMM D')}</p>
+                      </div>
+                      <p className="mt-0.5 text-sm text-surface-600">{c.reason}</p>
+                      <p className="mt-1 text-xs text-surface-400">{dayjs(c.created_at).format('MMM D, h:mm A')}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        loading={reject.isPending}
+                        onClick={() => reject.mutate({ id: c.id, note: 'Declined by admin' })}
+                      >
+                        Decline
+                      </Button>
+                      <Button
+                        variant="cta"
+                        size="sm"
+                        loading={approve.isPending}
+                        onClick={() => approve.mutate({ id: c.id })}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
@@ -1149,10 +1202,7 @@ function CorrectionsTab() {
             <h3 className="text-base font-semibold tracking-tight text-surface-900">This month</h3>
             <p className="text-xs text-surface-500">Correction activity</p>
             <ul className="mt-5 space-y-4">
-              <SummaryRow label="Submitted" value="24" tone="text-surface-900" />
-              <SummaryRow label="Approved" value="18" tone="text-cta-700" />
-              <SummaryRow label="Declined" value="3" tone="text-red-600" />
-              <SummaryRow label="Pending" value="3" tone="text-amber-700" />
+              <SummaryRow label="Pending" value={String(corrections.length)} tone="text-amber-700" />
             </ul>
           </CardContent>
         </Card>

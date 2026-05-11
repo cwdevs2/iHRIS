@@ -36,6 +36,8 @@ import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/cn';
 import { easeOutStrong } from '@/lib/motion';
+import { useAdminLeaveRequests, useApproveLeave, useRejectLeave } from '@/hooks/useAdminLeave';
+import type { AdminLeaveRequest } from '@/api/adminLeave';
 
 /* ──────────────────────────────────────────────────────────────────
    Motion tokens
@@ -50,42 +52,17 @@ const itemVariants = {
 };
 
 /* ──────────────────────────────────────────────────────────────────
-   Mock data
+   Local type helpers
    ────────────────────────────────────────────────────────────────── */
 
-type LeaveType = 'vacation' | 'sick' | 'emergency' | 'maternity' | 'paternity' | 'solo_parent' | 'sil';
+type LeaveTypeName = 'vacation' | 'sick' | 'emergency' | 'maternity' | 'paternity' | 'solo_parent' | 'sil';
 type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
-interface LeaveRequest {
-  id: string;
-  employee: { name: string; initials: string; position: string };
-  type: LeaveType;
-  startDate: string;
-  endDate: string;
-  days: number;
-  reason: string;
-  status: LeaveStatus;
-  filedAt: string;
-  approver?: string;
-  hasAttachment?: boolean;
-}
-
-const MOCK_REQUESTS: LeaveRequest[] = [
-  { id: '1', employee: { name: 'Camille Reyes', initials: 'CR', position: 'Senior Designer' }, type: 'vacation', startDate: '2026-05-12', endDate: '2026-05-16', days: 5, reason: 'Annual family vacation in Palawan.', status: 'pending', filedAt: '2026-05-06', hasAttachment: false },
-  { id: '2', employee: { name: 'Sofia Lim', initials: 'SL', position: 'HR Specialist' }, type: 'sick', startDate: '2026-05-08', endDate: '2026-05-09', days: 2, reason: 'Flu — medical certificate attached.', status: 'pending', filedAt: '2026-05-07', hasAttachment: true },
-  { id: '3', employee: { name: 'Marco Villanueva', initials: 'MV', position: 'Engineering Lead' }, type: 'emergency', startDate: '2026-05-07', endDate: '2026-05-07', days: 1, reason: 'Family emergency.', status: 'approved', filedAt: '2026-05-07', approver: 'Sarah Chen' },
-  { id: '4', employee: { name: 'Daniel Cruz', initials: 'DC', position: 'Account Manager' }, type: 'vacation', startDate: '2026-05-20', endDate: '2026-05-22', days: 3, reason: 'Wedding anniversary trip.', status: 'pending', filedAt: '2026-05-05', hasAttachment: false },
-  { id: '5', employee: { name: 'Ana Bautista', initials: 'AB', position: 'Recruiter' }, type: 'maternity', startDate: '2026-06-01', endDate: '2026-08-29', days: 90, reason: 'Maternity leave — Philippine Labor Code.', status: 'approved', filedAt: '2026-04-22', approver: 'Sarah Chen', hasAttachment: true },
-  { id: '6', employee: { name: 'Joaquin Garcia', initials: 'JG', position: 'Field Engineer' }, type: 'sick', startDate: '2026-05-04', endDate: '2026-05-05', days: 2, reason: 'Migraine — recovered.', status: 'approved', filedAt: '2026-05-03', approver: 'Marco Villanueva' },
-  { id: '7', employee: { name: 'Lara Mendoza', initials: 'LM', position: 'Marketing Lead' }, type: 'sil', startDate: '2026-05-15', endDate: '2026-05-15', days: 1, reason: 'Service incentive leave.', status: 'rejected', filedAt: '2026-05-04' },
-  { id: '8', employee: { name: 'Paolo Santos', initials: 'PS', position: 'Backend Engineer' }, type: 'paternity', startDate: '2026-05-25', endDate: '2026-05-31', days: 7, reason: 'Paternity leave — newborn baby.', status: 'pending', filedAt: '2026-05-06', hasAttachment: true },
-];
-
 const MY_BALANCES = [
-  { type: 'vacation' as LeaveType, label: 'Vacation', total: 15, used: 5, pending: 2 },
-  { type: 'sick' as LeaveType, label: 'Sick', total: 15, used: 3, pending: 0 },
-  { type: 'emergency' as LeaveType, label: 'Emergency', total: 5, used: 1, pending: 0 },
-  { type: 'sil' as LeaveType, label: 'Service Incentive', total: 5, used: 0, pending: 0 },
+  { type: 'vacation' as LeaveTypeName, label: 'Vacation', total: 15, used: 5, pending: 2 },
+  { type: 'sick' as LeaveTypeName, label: 'Sick', total: 15, used: 3, pending: 0 },
+  { type: 'emergency' as LeaveTypeName, label: 'Emergency', total: 5, used: 1, pending: 0 },
+  { type: 'sil' as LeaveTypeName, label: 'Service Incentive', total: 5, used: 0, pending: 0 },
 ];
 
 const RECENT_ACTIVITY = [
@@ -100,7 +77,7 @@ const RECENT_ACTIVITY = [
    ────────────────────────────────────────────────────────────────── */
 
 const TYPE_CFG: Record<
-  LeaveType,
+  LeaveTypeName,
   { label: string; short: string; icon: typeof Heart; tone: string; ring: string; dot: string; bar: string }
 > = {
   vacation:    { label: 'Vacation Leave',     short: 'VL',  icon: Plane,       tone: 'bg-brand-50 text-brand-700',  ring: 'ring-brand-100',  dot: 'bg-brand-500',  bar: 'bg-brand-500' },
@@ -112,7 +89,7 @@ const TYPE_CFG: Record<
   sil:         { label: 'Service Incentive',   short: 'SIL', icon: Sparkles,    tone: 'bg-cta-500/10 text-cta-700',  ring: 'ring-cta-500/20', dot: 'bg-cta-500',    bar: 'bg-cta-500' },
 };
 
-const STATUS_CFG: Record<LeaveStatus, { label: string; variant: 'success' | 'warning' | 'danger' | 'default' }> = {
+const STATUS_CFG: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'default' }> = {
   pending:   { label: 'Pending',   variant: 'warning' },
   approved:  { label: 'Approved',  variant: 'success' },
   rejected:  { label: 'Rejected',  variant: 'danger' },
@@ -125,11 +102,11 @@ const STATUS_CFG: Record<LeaveStatus, { label: string; variant: 'success' | 'war
 
 type TabKey = 'overview' | 'requests' | 'calendar' | 'approvals';
 
-const TABS: { key: TabKey; label: string; icon: typeof TrendingUp; count?: number }[] = [
-  { key: 'overview',  label: 'Overview',  icon: TrendingUp },
-  { key: 'requests',  label: 'My Requests', icon: ListChecks, count: 3 },
+const TABS: { key: TabKey; label: string; icon: typeof TrendingUp }[] = [
+  { key: 'overview',  label: 'Overview',      icon: TrendingUp },
+  { key: 'requests',  label: 'My Requests',   icon: ListChecks },
   { key: 'calendar',  label: 'Team Calendar', icon: CalendarRange },
-  { key: 'approvals', label: 'Approvals', icon: FileCheck2, count: 4 },
+  { key: 'approvals', label: 'Approvals',     icon: FileCheck2 },
 ];
 
 export function LeavesPage() {
@@ -185,7 +162,7 @@ export function LeavesPage() {
         className="flex items-center gap-1 overflow-x-auto rounded-xl border border-surface-200 bg-surface-0 p-1"
         role="tablist"
       >
-        {TABS.map(({ key, label, icon: Icon, count }) => {
+        {TABS.map(({ key, label, icon: Icon }) => {
           const active = tab === key;
           return (
             <button
@@ -209,16 +186,6 @@ export function LeavesPage() {
               ) : null}
               <Icon className={cn('relative h-4 w-4', active ? 'text-brand-700' : 'text-surface-400')} />
               <span className="relative">{label}</span>
-              {count ? (
-                <span
-                  className={cn(
-                    'relative grid h-4 min-w-[16px] place-items-center rounded-full px-1 text-[10px] font-semibold',
-                    active ? 'bg-brand-600 text-white' : 'bg-surface-200 text-surface-700',
-                  )}
-                >
-                  {count}
-                </span>
-              ) : null}
             </button>
           );
         })}
@@ -595,8 +562,8 @@ function LegendDot({ className, label, value }: { className: string; label: stri
 
 function UpcomingMyLeavesCard() {
   const items = [
-    { id: '1', type: 'sick' as LeaveType, dates: 'May 8 — May 9', days: 2, status: 'pending' as LeaveStatus },
-    { id: '2', type: 'vacation' as LeaveType, dates: 'May 12 — May 16', days: 5, status: 'pending' as LeaveStatus },
+    { id: '1', type: 'sick' as LeaveTypeName, dates: 'May 8 — May 9', days: 2, status: 'pending' as LeaveStatus },
+    { id: '2', type: 'vacation' as LeaveTypeName, dates: 'May 12 — May 16', days: 5, status: 'pending' as LeaveStatus },
   ];
 
   return (
@@ -767,13 +734,20 @@ function PolicyHighlightsCard() {
 function RequestsTab() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeaveStatus | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<LeaveType | 'all'>('all');
 
-  const filtered = MOCK_REQUESTS.filter((l) => {
-    if (statusFilter !== 'all' && l.status !== statusFilter) return false;
-    if (typeFilter !== 'all' && l.type !== typeFilter) return false;
-    if (search && !l.employee.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
+  const { data, isLoading } = useAdminLeaveRequests({
+    per_page: 100,
+    ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+  });
+
+  const requests = data?.requests ?? [];
+
+  const filtered = requests.filter((r) => {
+    if (!search) return true;
+    const name = r.employee
+      ? `${r.employee.user?.first_name ?? ''} ${r.employee.user?.last_name ?? ''}`.toLowerCase()
+      : '';
+    return name.includes(search.toLowerCase());
   });
 
   return (
@@ -803,27 +777,12 @@ function RequestsTab() {
           <option value="cancelled">Cancelled</option>
         </select>
 
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as LeaveType | 'all')}
-          className="h-10 rounded-lg border border-surface-200 bg-surface-0 px-3 text-sm text-surface-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-600/15"
-        >
-          <option value="all">All types</option>
-          <option value="vacation">Vacation</option>
-          <option value="sick">Sick</option>
-          <option value="emergency">Emergency</option>
-          <option value="maternity">Maternity</option>
-          <option value="paternity">Paternity</option>
-          <option value="solo_parent">Solo Parent</option>
-          <option value="sil">Service Incentive</option>
-        </select>
-
         <Button variant="secondary" size="md" leftIcon={<Filter className="h-4 w-4" />}>
           More filters
         </Button>
         <div className="ml-auto text-xs text-surface-500">
           Showing <span className="font-medium text-surface-900 tabular-nums">{filtered.length}</span> of{' '}
-          <span className="tabular-nums">{MOCK_REQUESTS.length}</span> requests
+          <span className="tabular-nums">{requests.length}</span> requests
         </div>
       </div>
 
@@ -844,7 +803,13 @@ function RequestsTab() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-16 text-center text-sm text-surface-500">
+                    Loading leave requests…
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
@@ -874,20 +839,27 @@ function RequestsTab() {
   );
 }
 
-function RequestRow({ request }: { request: LeaveRequest }) {
-  const c = TYPE_CFG[request.type];
+function RequestRow({ request }: { request: AdminLeaveRequest }) {
+  const typeName = (request.leave_type?.code ?? 'vacation') as LeaveTypeName;
+  const c = TYPE_CFG[typeName] ?? TYPE_CFG['vacation'];
   const Icon = c.icon;
+  const empName = request.employee
+    ? `${request.employee.user?.first_name ?? ''} ${request.employee.user?.last_name ?? ''}`.trim()
+    : 'Unknown';
+  const initials = empName.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  const position = request.employee?.position?.name ?? '—';
+  const statusCfg = STATUS_CFG[request.status ?? 'pending'] ?? { label: request.status, variant: 'default' as const };
   return (
     <tr className="border-b border-surface-50 transition-colors duration-200 last:border-0 hover:bg-surface-50">
       {/* Employee */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
-            {request.employee.initials}
+            {initials}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-surface-900">{request.employee.name}</p>
-            <p className="text-xs text-surface-500">{request.employee.position}</p>
+            <p className="truncate text-sm font-medium text-surface-900">{empName}</p>
+            <p className="text-xs text-surface-500">{position}</p>
           </div>
         </div>
       </td>
@@ -910,17 +882,17 @@ function RequestRow({ request }: { request: LeaveRequest }) {
       <td className="px-4 py-3">
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-medium tabular-nums text-surface-900">
-            {dayjs(request.startDate).format('MMM D')}
-            {request.startDate !== request.endDate ? ` — ${dayjs(request.endDate).format('MMM D')}` : ''}
+            {dayjs(request.start_date).format('MMM D')}
+            {request.start_date !== request.end_date ? ` — ${dayjs(request.end_date).format('MMM D')}` : ''}
           </span>
-          <span className="text-[11px] text-surface-400">{dayjs(request.startDate).format('YYYY')}</span>
+          <span className="text-[11px] text-surface-400">{dayjs(request.start_date).format('YYYY')}</span>
         </div>
       </td>
 
       {/* Days */}
       <td className="px-4 py-3">
         <span className="text-sm font-semibold tabular-nums text-surface-900">
-          {request.days}
+          {request.days_requested}
           <span className="ml-0.5 text-xs font-normal text-surface-400">d</span>
         </span>
       </td>
@@ -929,7 +901,7 @@ function RequestRow({ request }: { request: LeaveRequest }) {
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5">
           <p className="max-w-[260px] truncate text-sm text-surface-600">{request.reason}</p>
-          {request.hasAttachment ? (
+          {request.attachment_path ? (
             <Paperclip className="h-3 w-3 shrink-0 text-surface-400" aria-label="Has attachment" />
           ) : null}
         </div>
@@ -937,12 +909,12 @@ function RequestRow({ request }: { request: LeaveRequest }) {
 
       {/* Status */}
       <td className="px-4 py-3">
-        <Badge variant={STATUS_CFG[request.status].variant}>{STATUS_CFG[request.status].label}</Badge>
+        <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
       </td>
 
       {/* Filed */}
       <td className="px-4 py-3">
-        <span className="text-xs text-surface-500 tabular-nums">{dayjs(request.filedAt).format('MMM D')}</span>
+        <span className="text-xs text-surface-500 tabular-nums">{dayjs(request.created_at).format('MMM D')}</span>
       </td>
 
       {/* Action */}
@@ -950,7 +922,7 @@ function RequestRow({ request }: { request: LeaveRequest }) {
         <button
           type="button"
           className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-surface-400 transition-colors duration-200 hover:bg-surface-100 hover:text-surface-900"
-          aria-label={`Open request for ${request.employee.name}`}
+          aria-label={`Open request for ${empName}`}
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -964,24 +936,37 @@ function RequestRow({ request }: { request: LeaveRequest }) {
    ────────────────────────────────────────────────────────────────── */
 
 function CalendarTab() {
-  const [cursor, setCursor] = useState(() => dayjs('2026-05-01'));
+  const [cursor, setCursor] = useState(() => dayjs());
+  const { data } = useAdminLeaveRequests({ per_page: 200 });
+  const allRequests = data?.requests ?? [];
 
   const monthData = useMemo(() => {
     const startOfMonth = cursor.startOf('month');
-    const startOfGrid = startOfMonth.startOf('week'); // dayjs default: Sunday
-    const cells: { date: dayjs.Dayjs; inMonth: boolean; events: { type: LeaveType; initials: string; name: string }[] }[] = [];
+    const startOfGrid = startOfMonth.startOf('week');
+    const cells: { date: dayjs.Dayjs; inMonth: boolean; events: { typeName: LeaveTypeName; initials: string; name: string }[] }[] = [];
 
     for (let i = 0; i < 42; i++) {
       const date = startOfGrid.add(i, 'day');
       const inMonth = date.month() === cursor.month();
-      const events = MOCK_REQUESTS
+      const events = allRequests
         .filter((r) => r.status !== 'rejected' && r.status !== 'cancelled')
-        .filter((r) => date.isSame(r.startDate, 'day') || date.isSame(r.endDate, 'day') || (date.isAfter(r.startDate) && date.isBefore(r.endDate)))
-        .map((r) => ({ type: r.type, initials: r.employee.initials, name: r.employee.name }));
+        .filter((r) => {
+          const start = dayjs(r.start_date);
+          const end = dayjs(r.end_date);
+          return date.isSame(start, 'day') || date.isSame(end, 'day') || (date.isAfter(start) && date.isBefore(end));
+        })
+        .map((r) => {
+          const firstName = r.employee?.user?.first_name ?? '';
+          const lastName = r.employee?.user?.last_name ?? '';
+          const name = `${firstName} ${lastName}`.trim();
+          const initials = name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+          const typeName = (r.leave_type?.code ?? 'vacation') as LeaveTypeName;
+          return { typeName, initials, name };
+        });
       cells.push({ date, inMonth, events });
     }
     return cells;
-  }, [cursor]);
+  }, [cursor, allRequests]);
 
   const today = dayjs();
 
@@ -1061,7 +1046,7 @@ function CalendarTab() {
 
                   <div className="flex flex-col gap-1">
                     {cell.events.slice(0, 2).map((e, idx) => {
-                      const c = TYPE_CFG[e.type];
+                      const c = TYPE_CFG[e.typeName] ?? TYPE_CFG['vacation'];
                       return (
                         <span
                           key={idx}
@@ -1088,7 +1073,7 @@ function CalendarTab() {
 
           {/* Legend */}
           <div className="mt-6 flex flex-wrap items-center gap-4 border-t border-surface-100 pt-4 text-xs text-surface-600">
-            {(['vacation', 'sick', 'emergency', 'maternity', 'paternity', 'sil'] as LeaveType[]).map((t) => {
+            {(['vacation', 'sick', 'emergency', 'maternity', 'paternity', 'sil'] as LeaveTypeName[]).map((t) => {
               const c = TYPE_CFG[t];
               return (
                 <span key={t} className="inline-flex items-center gap-2">
@@ -1115,9 +1100,9 @@ function CalendarTab() {
 
             <ul className="mt-4 space-y-2.5">
               {[
-                { name: 'Marco Villanueva', initials: 'MV', type: 'emergency' as LeaveType },
-                { name: 'Ana Bautista', initials: 'AB', type: 'maternity' as LeaveType },
-                { name: 'Joaquin Garcia', initials: 'JG', type: 'sick' as LeaveType },
+                { name: 'Marco Villanueva', initials: 'MV', type: 'emergency' as LeaveTypeName },
+                { name: 'Ana Bautista', initials: 'AB', type: 'maternity' as LeaveTypeName },
+                { name: 'Joaquin Garcia', initials: 'JG', type: 'sick' as LeaveTypeName },
               ].map((p) => {
                 const c = TYPE_CFG[p.type];
                 const Icon = c.icon;
@@ -1189,7 +1174,8 @@ function HolidayRow({ date, label, tag, tone }: { date: string; label: string; t
    ────────────────────────────────────────────────────────────────── */
 
 function ApprovalsTab({ canApprove }: { canApprove: boolean }) {
-  const pending = MOCK_REQUESTS.filter((r) => r.status === 'pending');
+  const { data, isLoading } = useAdminLeaveRequests({ status: 'pending', per_page: 50 });
+  const pending = data?.requests ?? [];
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -1205,22 +1191,26 @@ function ApprovalsTab({ canApprove }: { canApprove: boolean }) {
             <Badge variant="warning">{pending.length} pending</Badge>
           </div>
 
-          <ul className="divide-y divide-surface-100">
-            {pending.map((r, i) => (
-              <ApprovalItem key={r.id} request={r} canApprove={canApprove} delay={i * 0.04} />
-            ))}
-            {pending.length === 0 ? (
-              <li className="px-6 py-16">
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="grid h-10 w-10 place-items-center rounded-full bg-cta-500/10 text-cta-700">
-                    <CheckCircle2 className="h-5 w-5" />
+          {isLoading ? (
+            <div className="px-6 py-16 text-center text-sm text-surface-500">Loading…</div>
+          ) : (
+            <ul className="divide-y divide-surface-100">
+              {pending.map((r, i) => (
+                <ApprovalItem key={r.id} request={r} canApprove={canApprove} delay={i * 0.04} />
+              ))}
+              {pending.length === 0 ? (
+                <li className="px-6 py-16">
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <div className="grid h-10 w-10 place-items-center rounded-full bg-cta-500/10 text-cta-700">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-medium text-surface-900">All caught up</p>
+                    <p className="text-xs text-surface-500">No pending leave requests for review.</p>
                   </div>
-                  <p className="text-sm font-medium text-surface-900">All caught up</p>
-                  <p className="text-xs text-surface-500">No pending leave requests for review.</p>
-                </div>
-              </li>
-            ) : null}
-          </ul>
+                </li>
+              ) : null}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
@@ -1230,19 +1220,8 @@ function ApprovalsTab({ canApprove }: { canApprove: boolean }) {
             <h3 className="text-base font-semibold tracking-tight text-surface-900">This month</h3>
             <p className="text-xs text-surface-500">Approval activity</p>
             <ul className="mt-5 space-y-4">
-              <SummaryRow label="Submitted" value="32" tone="text-surface-900" />
-              <SummaryRow label="Approved" value="23" tone="text-cta-700" />
-              <SummaryRow label="Rejected" value="2" tone="text-red-600" />
               <SummaryRow label="Pending" value={String(pending.length)} tone="text-amber-700" />
             </ul>
-
-            {/* Mini distribution bar */}
-            <div className="mt-5 flex h-2 w-full overflow-hidden rounded-full bg-surface-100">
-              <motion.div initial={{ width: 0 }} animate={{ width: '72%' }} transition={{ duration: 0.6, ease: easeOutStrong }} className="bg-cta-500" />
-              <motion.div initial={{ width: 0 }} animate={{ width: '13%' }} transition={{ duration: 0.6, delay: 0.05, ease: easeOutStrong }} className="bg-amber-400" />
-              <motion.div initial={{ width: 0 }} animate={{ width: '6%' }} transition={{ duration: 0.6, delay: 0.1, ease: easeOutStrong }} className="bg-red-400" />
-            </div>
-            <p className="mt-2 text-[11px] text-surface-500">94% approval rate · avg response 4h 12m</p>
           </CardContent>
         </Card>
 
@@ -1262,10 +1241,28 @@ function ApprovalsTab({ canApprove }: { canApprove: boolean }) {
   );
 }
 
-function ApprovalItem({ request, canApprove, delay }: { request: LeaveRequest; canApprove: boolean; delay: number }) {
+function ApprovalItem({ request, canApprove, delay }: { request: AdminLeaveRequest; canApprove: boolean; delay: number }) {
   const [resolved, setResolved] = useState<null | 'approved' | 'rejected'>(null);
-  const c = TYPE_CFG[request.type];
+  const approveLeave = useApproveLeave();
+  const rejectLeave = useRejectLeave();
+
+  const typeName = (request.leave_type?.code ?? 'vacation') as LeaveTypeName;
+  const c = TYPE_CFG[typeName] ?? TYPE_CFG['vacation'];
   const Icon = c.icon;
+  const empName = request.employee
+    ? `${request.employee.user?.first_name ?? ''} ${request.employee.user?.last_name ?? ''}`.trim()
+    : 'Unknown';
+  const initials = empName.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  const position = request.employee?.position?.name ?? '—';
+
+  const handleApprove = () => {
+    approveLeave.mutate({ id: request.id });
+    setResolved('approved');
+  };
+  const handleReject = () => {
+    rejectLeave.mutate({ id: request.id });
+    setResolved('rejected');
+  };
 
   return (
     <motion.li
@@ -1276,13 +1273,13 @@ function ApprovalItem({ request, canApprove, delay }: { request: LeaveRequest; c
     >
       <div className="flex flex-1 items-start gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
-          {request.employee.initials}
+          {initials}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-surface-900">{request.employee.name}</p>
+            <p className="text-sm font-semibold text-surface-900">{empName}</p>
             <span className="text-xs text-surface-400">·</span>
-            <p className="text-xs text-surface-500">{request.employee.position}</p>
+            <p className="text-xs text-surface-500">{position}</p>
             <span
               className={cn(
                 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset',
@@ -1298,22 +1295,22 @@ function ApprovalItem({ request, canApprove, delay }: { request: LeaveRequest; c
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-surface-600">
             <span className="inline-flex items-center gap-1 tabular-nums font-medium text-surface-900">
               <CalendarDays className="h-3 w-3 text-surface-400" />
-              {dayjs(request.startDate).format('MMM D')}
-              {request.startDate !== request.endDate ? ` — ${dayjs(request.endDate).format('MMM D')}` : ''}
+              {dayjs(request.start_date).format('MMM D')}
+              {request.start_date !== request.end_date ? ` — ${dayjs(request.end_date).format('MMM D')}` : ''}
             </span>
             <span className="text-surface-400">·</span>
-            <span className="font-medium tabular-nums text-surface-900">{request.days} day{request.days !== 1 ? 's' : ''}</span>
+            <span className="font-medium tabular-nums text-surface-900">{request.days_requested} day{request.days_requested !== 1 ? 's' : ''}</span>
             <span className="text-surface-400">·</span>
             <span className="inline-flex items-center gap-1">
               <Clock className="h-3 w-3 text-surface-400" />
-              Filed {dayjs(request.filedAt).format('MMM D')}
+              Filed {dayjs(request.created_at).format('MMM D')}
             </span>
           </div>
 
           <p className="mt-2 flex items-start gap-1.5 text-sm text-surface-600">
             <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-surface-400" />
             <span>{request.reason}</span>
-            {request.hasAttachment ? (
+            {request.attachment_path ? (
               <span className="ml-1 inline-flex items-center gap-1 text-xs text-brand-700">
                 <Paperclip className="h-3 w-3" />
                 Attachment
@@ -1358,7 +1355,7 @@ function ApprovalItem({ request, canApprove, delay }: { request: LeaveRequest; c
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setResolved('rejected')}
+                onClick={handleReject}
                 leftIcon={<XCircle className="h-3.5 w-3.5" />}
               >
                 Decline
@@ -1366,7 +1363,7 @@ function ApprovalItem({ request, canApprove, delay }: { request: LeaveRequest; c
               <Button
                 variant="cta"
                 size="sm"
-                onClick={() => setResolved('approved')}
+                onClick={handleApprove}
                 leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
               >
                 Approve
@@ -1389,3 +1386,5 @@ function SummaryRow({ label, value, tone }: { label: string; value: string; tone
     </li>
   );
 }
+
+

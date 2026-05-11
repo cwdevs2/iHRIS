@@ -43,6 +43,10 @@ class Employee extends Model
         'basic_salary',
         'pay_frequency',
         'emergency_contact',
+        'shift_type',
+        'shift_start',
+        'shift_end',
+        'work_days',
     ];
 
     protected function casts(): array
@@ -58,6 +62,7 @@ class Employee extends Model
             'pagibig_number' => 'encrypted',
             'tin' => 'encrypted',
             'emergency_contact' => 'array',
+            'work_days' => 'array',
         ];
     }
 

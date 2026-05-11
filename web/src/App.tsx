@@ -22,6 +22,8 @@ import { TicketDetailPage } from '@/pages/tickets/TicketDetailPage';
 import { UsersPage } from '@/pages/users/UsersPage';
 import { AuditLogsPage } from '@/pages/audit-logs/AuditLogsPage';
 import { AttendancePage } from '@/pages/attendance/AttendancePage';
+import { AdminAttendanceManagementPage } from '@/pages/attendance/AdminAttendanceManagementPage';
+import { AdminLeaveManagementPage } from '@/pages/leaves/AdminLeaveManagementPage';
 import { SchedulePage } from '@/pages/schedule/SchedulePage';
 import { LeavesPage } from '@/pages/leaves/LeavesPage';
 import { PayrollPage } from '@/pages/payroll/PayrollPage';
@@ -168,6 +170,15 @@ function AppRouter() {
         />
 
         <Route
+          path="attendance/manage"
+          element={
+            <RequirePermission permission="attendance.logs.manage">
+              <AdminAttendanceManagementPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
           path="schedule"
           element={
             <RequirePermission permission="attendance.logs.view">
@@ -181,6 +192,15 @@ function AppRouter() {
           element={
             <RequirePermission permission="leaves.requests.view">
               <LeavesPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="leaves/manage"
+          element={
+            <RequirePermission permission="leaves.requests.manage">
+              <AdminLeaveManagementPage />
             </RequirePermission>
           }
         />

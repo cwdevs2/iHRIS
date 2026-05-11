@@ -270,3 +270,57 @@ Per Philippine Labor Code Article 95:
 - Implemented as `code = 'paternity'`, `default_credits = 7`
 
 These types have `is_system = true` — they cannot be deleted or renamed, only enabled/disabled.
+
+---
+
+## 16. Admin Leave Management
+
+The Admin Leave Management module gives HR full control over leave requests, leave type configuration, and employee credit balances.
+
+### Admin Endpoints (`/api/v1/admin/leave`)
+
+| Method | Path | Permission | Description |
+|--------|------|-----------|-------------|
+| GET | `/admin/leave` | `leaves.requests.manage` | List all requests with optional `status`, `employee_id`, `leave_type_id` filters |
+| POST | `/admin/leave/{id}/approve` | `leaves.requests.manage` | Approve a leave request (optional `note`) |
+| POST | `/admin/leave/{id}/reject` | `leaves.requests.manage` | Reject a leave request (required `note`) |
+| GET | `/admin/leave/types` | `leaves.requests.manage` | List all leave types |
+| POST | `/admin/leave/types` | `leaves.requests.manage` | Create a new leave type |
+| PATCH | `/admin/leave/types/{id}` | `leaves.requests.manage` | Update a leave type |
+| GET | `/admin/leave/balances` | `leaves.requests.manage` | Get leave balances (filter by `employee_id`, `year`) |
+| PATCH | `/admin/leave/balances/{id}` | `leaves.requests.manage` | Adjust an employee's leave credit balance |
+
+### Admin Frontend
+
+**Page**: `web/src/pages/leaves/AdminLeaveManagementPage.tsx`  
+**Route**: `/leaves/manage`
+
+**Tabs:**
+
+1. **Leave Requests** — filter by status and employee name search, table with approve/reject actions per pending request
+2. **Leave Types** — list configured types, toggle active/inactive, edit name/code/credits/flags inline via modal; create new types with: `code`, `name`, `description`, `default_credits`, `is_paid`, `requires_attachment`
+3. **Leave Credits** — select employee to view per-type balances for the current year; shows total, used, and available credits; adjust credits via modal (sets new total with optional reason)
+
+**Hooks**: `useAdminLeaveRequests`, `useApproveLeave`, `useRejectLeave`, `useAdminLeaveTypes`, `useCreateLeaveType`, `useUpdateLeaveType`, `useEmployeeLeaveBalances`, `useAdjustLeaveBalance` (all from `web/src/hooks/useAdminLeave.ts`)
+
+### Admin API Shape (AdminLeaveRequest)
+
+```typescript
+{
+  id: string;
+  employee: {
+    id: string;
+    user?: { first_name: string; last_name: string };
+    position?: { name: string };
+    department?: { name: string };
+  };
+  leave_type: { id: string; code: string; name: string };
+  start_date: string;        // YYYY-MM-DD
+  end_date: string;          // YYYY-MM-DD
+  days_requested: number;    // Note: ESS uses total_days, admin uses days_requested
+  reason: string;
+  attachment_path: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  created_at: string;
+}
+```
