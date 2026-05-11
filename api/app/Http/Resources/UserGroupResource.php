@@ -44,6 +44,16 @@ class UserGroupResource extends JsonResource
                     'added_at'  => $u->pivot->created_at?->toIso8601String(),
                 ])->values()->all(),
             ),
+            'director_id'    => $this->director_id,
+            'director'       => $this->whenLoaded('director', fn () => $this->director ? [
+                'id'         => $this->director->id,
+                'full_name'  => $this->director->full_name,
+                'email'      => $this->director->email,
+                'avatar_url' => $this->director->avatar_path
+                    ? url("storage/{$this->director->avatar_path}")
+                    : null,
+                'employee_number' => $this->director->employee?->employee_number,
+            ] : null),
             'created_by'     => $this->created_by,
             'creator'        => $this->whenLoaded('creator', fn () => [
                 'id'        => $this->creator->id,

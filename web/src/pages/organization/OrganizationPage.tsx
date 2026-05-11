@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Building2, Briefcase, Pencil, Trash2, X, ChevronDown, ChevronRight, Users, UserPlus, UserMinus, Shield } from 'lucide-react';
+import { Plus, Building2, Briefcase, Pencil, Trash2, X, ChevronDown, ChevronRight, Users, UserPlus, UserMinus, Shield, Search, Crown } from 'lucide-react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,11 +15,13 @@ import {
   useUserGroups, useUserGroup,
   useCreateUserGroup, useUpdateUserGroup, useDeleteUserGroup,
   useAddGroupMember, useRemoveGroupMember,
+  useAssignGroupDirector, useRemoveGroupDirector,
 } from '@/hooks/useUserGroups';
+import { useEmployees } from '@/hooks/useEmployees';
 import { useAuthStore } from '@/stores/auth';
 import { ApiError } from '@/lib/api';
 import { easeOutStrong } from '@/lib/motion';
-import type { Department, Position, UserGroup, UserGroupType } from '@/types';
+import type { Department, Position, UserGroup, UserGroupDirector, UserGroupMember, UserGroupType } from '@/types';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -498,13 +500,18 @@ function GroupRow({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [assignDirectorOpen, setAssignDirectorOpen] = useState(false);
 
   const { data: fullGroup, isLoading } = useUserGroup(expanded ? group.id : undefined);
   const deleteGroup = useDeleteUserGroup();
   const removeMember = useRemoveGroupMember(group.id);
+  const removeDirector = useRemoveGroupDirector(group.id);
 
   const members = fullGroup?.members ?? [];
   const departments = fullGroup?.departments ?? group.departments ?? [];
+  // Prefer the freshly-loaded director; fall back to the list-level data
+  const director: UserGroupDirector | null = fullGroup?.director ?? group.director ?? null;
+  const directorUserId = fullGroup?.director_id ?? group.director_id ?? null;
 
   return (
     <>
@@ -527,9 +534,19 @@ function GroupRow({
                 <span className="inline-flex items-center rounded-full bg-surface-100 px-2 py-0.5 text-xs text-surface-500">Inactive</span>
               ) : null}
             </div>
-            <p className="text-xs text-surface-500">
-              {group.members_count ?? 0} members · {(group.departments?.length ?? group.department_ids?.length ?? 0)} departments
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs text-surface-500">
+                {group.members_count ?? 0} members · {(group.departments?.length ?? group.department_ids?.length ?? 0)} departments
+              </p>
+              {director ? (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-700">
+                  <Crown className="h-3 w-3" />
+                  {director.full_name}
+                </span>
+              ) : (
+                <span className="text-xs text-surface-400 italic">No director</span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             {canManageMembers ? (
@@ -539,6 +556,16 @@ function GroupRow({
                 className="flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-surface-200 px-2 text-xs text-surface-600 hover:bg-surface-100 transition-colors"
               >
                 <UserPlus className="h-3 w-3" /> Add member
+              </button>
+            ) : null}
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => setAssignDirectorOpen(true)}
+                className="flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-surface-200 px-2 text-xs text-amber-700 hover:bg-amber-50 transition-colors"
+                title="Assign director"
+              >
+                <Crown className="h-3 w-3" /> Director
               </button>
             ) : null}
             {canEdit ? (
@@ -582,33 +609,55 @@ function GroupRow({
                   </div>
                 ) : members.length === 0 ? (
                   <p className="pl-4 py-3 text-xs text-surface-400">No members yet.</p>
-                ) : members.map((m) => (
-                  <div key={m.id} className="group flex items-center gap-3 pl-4 pr-4 py-2.5 hover:bg-surface-50 border-b border-surface-50 last:border-0 transition-colors">
-                    <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-surface-200">
-                      {m.avatar_url ? (
-                        <img src={m.avatar_url} alt={m.full_name} className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="grid h-full w-full place-items-center text-xs font-medium text-surface-600">
-                          {m.full_name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
+                ) : members.map((m) => {
+                  const isDirector = m.id === directorUserId;
+                  return (
+                    <div key={m.id} className="group flex items-center gap-3 pl-4 pr-4 py-2.5 hover:bg-surface-50 border-b border-surface-50 last:border-0 transition-colors">
+                      <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-surface-200">
+                        {m.avatar_url ? (
+                          <img src={m.avatar_url} alt={m.full_name} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="grid h-full w-full place-items-center text-xs font-medium text-surface-600">
+                            {m.full_name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm text-surface-800">{m.full_name}</p>
+                          {isDirector ? (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+                              <Crown className="h-2.5 w-2.5" /> Director
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-surface-500">{m.email}</p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {canEdit && !isDirector ? (
+                          <button
+                            type="button"
+                            className="flex h-7 cursor-pointer items-center gap-1 rounded-lg px-1.5 text-xs text-amber-600 hover:bg-amber-50 transition-colors"
+                            title="Make director"
+                            onClick={() => setAssignDirectorOpen(true)}
+                          >
+                            <Crown className="h-3 w-3" />
+                          </button>
+                        ) : null}
+                        {canManageMembers ? (
+                          <button
+                            type="button"
+                            className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-600 transition-all"
+                            aria-label="Remove member"
+                            onClick={() => removeMember.mutate(m.id)}
+                          >
+                            <UserMinus className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-surface-800">{m.full_name}</p>
-                      <p className="text-xs text-surface-500">{m.email}</p>
-                    </div>
-                    {canManageMembers ? (
-                      <button
-                        type="button"
-                        className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-surface-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 transition-all"
-                        aria-label="Remove member"
-                        onClick={() => removeMember.mutate(m.id)}
-                      >
-                        <UserMinus className="h-3.5 w-3.5" />
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           ) : null}
@@ -620,8 +669,24 @@ function GroupRow({
         {editOpen ? <GroupFormModal open onClose={() => setEditOpen(false)} group={group} /> : null}
       </AnimatePresence>
 
+      {assignDirectorOpen ? (
+        <AssignDirectorModal
+          groupId={group.id}
+          currentDirectorId={directorUserId}
+          members={members}
+          departmentIds={group.department_ids}
+          onRemoveDirector={() => removeDirector.mutate()}
+          onClose={() => setAssignDirectorOpen(false)}
+        />
+      ) : null}
+
       {addMemberOpen ? (
-        <AddMemberModal groupId={group.id} onClose={() => setAddMemberOpen(false)} />
+        <AddMemberModal
+          groupId={group.id}
+          departmentIds={group.department_ids}
+          existingMembers={members}
+          onClose={() => setAddMemberOpen(false)}
+        />
       ) : null}
 
       {deleteOpen ? (
@@ -641,15 +706,32 @@ function GroupRow({
   );
 }
 
-// ─── Add Member Modal ─────────────────────────────────────────────────────────
+// ─── Assign Director Modal ────────────────────────────────────────────────────
 
-function AddMemberModal({ groupId, onClose }: { groupId: string; onClose: () => void }) {
-  const [userId, setUserId] = useState('');
-  const add = useAddGroupMember(groupId);
+function AssignDirectorModal({
+  groupId, currentDirectorId, members, departmentIds, onRemoveDirector, onClose,
+}: {
+  groupId: string;
+  currentDirectorId: string | null;
+  members: ReturnType<typeof useUserGroup>['data'] extends infer G ? G extends { members?: infer M } ? NonNullable<M> : never[] : never[];
+  departmentIds: string[];
+  onRemoveDirector: () => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const assign = useAssignGroupDirector(groupId);
 
-  const handleAdd = async () => {
-    if (!userId.trim()) return;
-    await add.mutateAsync(userId.trim());
+  // Also allow picking from broader employee list if group has no members yet
+  const { data: empData, isLoading } = useEmployees({ search: search || undefined, per_page: 100 });
+
+  const employeesInScope = (empData?.employees ?? []).filter(
+    (e) =>
+      e.user_id &&
+      (departmentIds.length === 0 || (e.department_id != null && departmentIds.includes(e.department_id))),
+  );
+
+  const handleAssign = async (userId: string) => {
+    await assign.mutateAsync(userId);
     onClose();
   };
 
@@ -663,24 +745,263 @@ function AddMemberModal({ groupId, onClose }: { groupId: string; onClose: () => 
         transition={{ duration: 0.2, ease: easeOutStrong }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
-        <div className="w-full max-w-md rounded-2xl bg-surface-0 shadow-2xl" role="dialog" aria-modal>
+        <div className="flex w-full max-w-md flex-col rounded-2xl bg-surface-0 shadow-2xl" role="dialog" aria-modal>
+          <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4">
+            <div>
+              <h2 className="text-base font-semibold text-surface-900">Assign Director</h2>
+              <p className="text-xs text-surface-500 mt-0.5">The director can manage this group's members</p>
+            </div>
+            <button type="button" onClick={onClose} className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-surface-400 hover:bg-surface-100 transition-colors" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Current director banner */}
+          {currentDirectorId ? (
+            <div className="mx-4 mt-4 flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-sm text-amber-800">
+                <Crown className="h-4 w-4 shrink-0" />
+                <span>Current director is set. Selecting another will replace them.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { onRemoveDirector(); onClose(); }}
+                className="shrink-0 text-xs font-medium text-red-600 hover:underline"
+              >
+                Remove
+              </button>
+            </div>
+          ) : null}
+
+          {/* Search */}
+          <div className="px-4 pt-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+              <input
+                autoFocus
+                type="search"
+                placeholder="Search by name or employee number…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 w-full rounded-lg border border-surface-200 bg-surface-0 pl-9 pr-3 text-sm text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-600/15 focus:border-brand-600 transition-[border-color,box-shadow] duration-200"
+              />
+            </div>
+          </div>
+
+          {/* Employee list */}
+          <div className="mx-4 my-3 max-h-64 overflow-y-auto rounded-lg border border-surface-200">
+            {isLoading ? (
+              <div className="flex flex-col divide-y divide-surface-100">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                    <div className="h-8 w-8 animate-pulse rounded-full bg-surface-100" />
+                    <div className="flex flex-col gap-1.5">
+                      <div className="h-3 w-32 animate-pulse rounded bg-surface-100" />
+                      <div className="h-3 w-20 animate-pulse rounded bg-surface-100" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : employeesInScope.length === 0 ? (
+              <div className="flex flex-col items-center gap-1 py-8 text-center">
+                <Users className="h-5 w-5 text-surface-300" />
+                <p className="text-sm text-surface-500">
+                  {search ? 'No matching employees.' : 'No eligible employees in this group\'s departments.'}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-surface-100">
+                {employeesInScope.map((emp) => {
+                  const isCurrent = emp.user_id === currentDirectorId;
+                  return (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      disabled={isCurrent || assign.isPending}
+                      onClick={() => emp.user_id && handleAssign(emp.user_id)}
+                      className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors disabled:opacity-60 ${
+                        isCurrent ? 'bg-amber-50' : 'hover:bg-surface-50'
+                      }`}
+                    >
+                      <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-surface-200">
+                        {emp.avatar_url ? (
+                          <img src={emp.avatar_url} alt={emp.full_name ?? ''} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="grid h-full w-full place-items-center text-xs font-semibold text-surface-600">
+                            {(emp.full_name ?? emp.employee_number).charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate text-sm font-medium text-surface-900">{emp.full_name ?? '—'}</p>
+                          {isCurrent ? <Crown className="h-3 w-3 shrink-0 text-amber-600" /> : null}
+                        </div>
+                        <p className="text-xs text-surface-500">
+                          {emp.employee_number}{emp.department ? ` · ${emp.department.name}` : ''}
+                        </p>
+                      </div>
+                      {isCurrent ? (
+                        <span className="shrink-0 text-xs text-amber-600 font-medium">Current</span>
+                      ) : (
+                        <span className="shrink-0 text-xs text-surface-400 hover:text-brand-600">Assign</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end border-t border-surface-100 px-6 py-4">
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// ─── Add Member Modal ─────────────────────────────────────────────────────────
+
+function AddMemberModal({
+  groupId, departmentIds, existingMembers, onClose,
+}: {
+  groupId: string;
+  departmentIds: string[];
+  existingMembers: UserGroupMember[];
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const add = useAddGroupMember(groupId);
+
+  // Fetch employees – no per-call department filter since group can span many depts.
+  // We filter client-side by the group's departmentIds.
+  const { data, isLoading } = useEmployees({ search: search || undefined, per_page: 100 });
+
+  const existingUserIds = new Set(existingMembers.map((m) => m.id));
+
+  const candidates = (data?.employees ?? []).filter(
+    (e) =>
+      e.user_id &&                                   // must have a linked user account
+      !existingUserIds.has(e.user_id) &&             // not already a member
+      (departmentIds.length === 0 ||                 // group scoped to no dept = show all
+        (e.department_id != null && departmentIds.includes(e.department_id))),
+  );
+
+  const handleAdd = async () => {
+    if (!selectedUserId) return;
+    await add.mutateAsync(selectedUserId);
+    onClose();
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2, ease: easeOutStrong }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <div className="flex w-full max-w-md flex-col rounded-2xl bg-surface-0 shadow-2xl" role="dialog" aria-modal>
           <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4">
             <h2 className="text-base font-semibold text-surface-900">Add Member</h2>
             <button type="button" onClick={onClose} className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-surface-400 hover:bg-surface-100 transition-colors" aria-label="Close">
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex flex-col gap-4 px-6 py-5">
-            <Input
-              label="User ID (UUID)"
-              placeholder="Enter the user's UUID"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-            />
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="ghost" onClick={onClose} disabled={add.isPending}>Cancel</Button>
-              <Button leftIcon={<UserPlus className="h-4 w-4" />} loading={add.isPending} disabled={!userId.trim()} onClick={handleAdd}>Add member</Button>
+
+          {/* Search */}
+          <div className="px-4 pt-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+              <input
+                autoFocus
+                type="search"
+                placeholder="Search by name or employee number…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setSelectedUserId(null); }}
+                className="h-10 w-full rounded-lg border border-surface-200 bg-surface-0 pl-9 pr-3 text-sm text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-600/15 focus:border-brand-600 transition-[border-color,box-shadow] duration-200"
+              />
             </div>
+          </div>
+
+          {/* Employee list */}
+          <div className="mx-4 my-3 max-h-72 overflow-y-auto rounded-lg border border-surface-200">
+            {isLoading ? (
+              <div className="flex flex-col divide-y divide-surface-100">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                    <div className="h-8 w-8 animate-pulse rounded-full bg-surface-100" />
+                    <div className="flex flex-col gap-1.5">
+                      <div className="h-3 w-32 animate-pulse rounded bg-surface-100" />
+                      <div className="h-3 w-20 animate-pulse rounded bg-surface-100" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : candidates.length === 0 ? (
+              <div className="flex flex-col items-center gap-1 py-8 text-center">
+                <Users className="h-5 w-5 text-surface-300" />
+                <p className="text-sm text-surface-500">
+                  {search ? 'No matching employees found.' : 'No eligible employees in this group\'s departments.'}
+                </p>
+                {!search && departmentIds.length > 0 ? (
+                  <p className="text-xs text-surface-400">Only employees from scoped departments with user accounts are shown.</p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="divide-y divide-surface-100">
+                {candidates.map((emp) => {
+                  const isSelected = selectedUserId === emp.user_id;
+                  return (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      onClick={() => setSelectedUserId(isSelected ? null : emp.user_id)}
+                      className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                        isSelected ? 'bg-brand-50' : 'hover:bg-surface-50'
+                      }`}
+                    >
+                      <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-surface-200">
+                        {emp.avatar_url ? (
+                          <img src={emp.avatar_url} alt={emp.full_name ?? ''} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="grid h-full w-full place-items-center text-xs font-semibold text-surface-600">
+                            {(emp.full_name ?? emp.employee_number).charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium text-surface-900">{emp.full_name ?? '—'}</p>
+                        <p className="text-xs text-surface-500">
+                          {emp.employee_number}
+                          {emp.department ? ` · ${emp.department.name}` : ''}
+                        </p>
+                      </div>
+                      {isSelected ? (
+                        <span className="shrink-0 rounded-full bg-brand-600 px-2 py-0.5 text-xs font-medium text-white">Selected</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 border-t border-surface-100 px-6 py-4">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={add.isPending}>Cancel</Button>
+            <Button
+              leftIcon={<UserPlus className="h-4 w-4" />}
+              loading={add.isPending}
+              disabled={!selectedUserId}
+              onClick={handleAdd}
+            >
+              Add member
+            </Button>
           </div>
         </div>
       </motion.div>

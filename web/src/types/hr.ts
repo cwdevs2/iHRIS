@@ -219,6 +219,14 @@ export interface UserGroupDepartment {
   code: string;
 }
 
+export interface UserGroupDirector {
+  id: string;
+  full_name: string;
+  email: string;
+  avatar_url: string | null;
+  employee_number: string | null;
+}
+
 export interface UserGroup {
   id: string;
   name: string;
@@ -230,6 +238,8 @@ export interface UserGroup {
   department_ids: string[];
   departments: UserGroupDepartment[];
   members?: UserGroupMember[];
+  director_id: string | null;
+  director: UserGroupDirector | null;
   created_by: string | null;
   creator: { id: string; full_name: string } | null;
   created_at: string;

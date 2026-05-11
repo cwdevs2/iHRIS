@@ -105,3 +105,29 @@ export function useRemoveGroupMember(groupId: string) {
     onError: () => toast.error('Failed to remove member.'),
   });
 }
+
+export function useAssignGroupDirector(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => userGroupApi.assignDirector(groupId, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: userGroupKeys.detail(groupId) });
+      qc.invalidateQueries({ queryKey: userGroupKeys.lists() });
+      toast.success('Director assigned.');
+    },
+    onError: () => toast.error('Failed to assign director.'),
+  });
+}
+
+export function useRemoveGroupDirector(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => userGroupApi.removeDirector(groupId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: userGroupKeys.detail(groupId) });
+      qc.invalidateQueries({ queryKey: userGroupKeys.lists() });
+      toast.success('Director removed.');
+    },
+    onError: () => toast.error('Failed to remove director.'),
+  });
+}

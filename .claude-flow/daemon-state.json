@@ -1,0 +1,140 @@
+{
+  "running": true,
+  "startedAt": "2026-05-11T05:29:03.658Z",
+  "workers": {
+    "map": {
+      "runCount": 10,
+      "successCount": 10,
+      "failureCount": 0,
+      "averageDurationMs": 1.3,
+      "isRunning": false,
+      "nextRun": "2026-05-11T07:59:03.773Z",
+      "lastStartedAt": "2026-05-11T07:44:03.771Z",
+      "lastRun": "2026-05-11T07:44:03.772Z"
+    },
+    "audit": {
+      "runCount": 14,
+      "successCount": 14,
+      "failureCount": 0,
+      "averageDurationMs": 23690.928571428572,
+      "isRunning": false,
+      "nextRun": "2026-05-11T07:46:27.188Z",
+      "lastStartedAt": "2026-05-11T07:46:27.190Z",
+      "lastRun": "2026-05-11T07:46:35.425Z"
+    },
+    "optimize": {
+      "runCount": 9,
+      "successCount": 9,
+      "failureCount": 0,
+      "averageDurationMs": 70992,
+      "isRunning": false,
+      "nextRun": "2026-05-11T07:58:42.680Z",
+      "lastStartedAt": "2026-05-11T07:43:36.033Z",
+      "lastRun": "2026-05-11T07:43:42.679Z"
+    },
+    "consolidate": {
+      "runCount": 5,
+      "successCount": 5,
+      "failureCount": 0,
+      "averageDurationMs": 1.6,
+      "isRunning": false,
+      "nextRun": "2026-05-11T08:05:03.707Z",
+      "lastStartedAt": "2026-05-11T07:35:03.705Z",
+      "lastRun": "2026-05-11T07:35:03.706Z"
+    },
+    "testgaps": {
+      "runCount": 6,
+      "successCount": 6,
+      "failureCount": 0,
+      "averageDurationMs": 115316,
+      "isRunning": false,
+      "nextRun": "2026-05-11T07:48:35.641Z",
+      "lastStartedAt": "2026-05-11T07:28:26.616Z",
+      "lastRun": "2026-05-11T07:28:35.640Z"
+    },
+    "predict": {
+      "runCount": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "averageDurationMs": 0,
+      "isRunning": false
+    },
+    "document": {
+      "runCount": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "averageDurationMs": 0,
+      "isRunning": false
+    }
+  },
+  "config": {
+    "autoStart": false,
+    "logDir": "D:\\XAMPP\\htdocs\\iHRIS\\.claude-flow\\logs",
+    "stateFile": "D:\\XAMPP\\htdocs\\iHRIS\\.claude-flow\\daemon-state.json",
+    "maxConcurrent": 2,
+    "workerTimeoutMs": 960000,
+    "resourceThresholds": {
+      "maxCpuLoad": 9.600000000000001,
+      "minFreeMemoryPercent": 10
+    },
+    "workers": [
+      {
+        "type": "map",
+        "intervalMs": 900000,
+        "offsetMs": 0,
+        "priority": "normal",
+        "description": "Codebase mapping",
+        "enabled": true
+      },
+      {
+        "type": "audit",
+        "intervalMs": 600000,
+        "offsetMs": 120000,
+        "priority": "critical",
+        "description": "Security analysis",
+        "enabled": true
+      },
+      {
+        "type": "optimize",
+        "intervalMs": 900000,
+        "offsetMs": 240000,
+        "priority": "high",
+        "description": "Performance optimization",
+        "enabled": true
+      },
+      {
+        "type": "consolidate",
+        "intervalMs": 1800000,
+        "offsetMs": 360000,
+        "priority": "low",
+        "description": "Memory consolidation",
+        "enabled": true
+      },
+      {
+        "type": "testgaps",
+        "intervalMs": 1200000,
+        "offsetMs": 480000,
+        "priority": "normal",
+        "description": "Test coverage analysis",
+        "enabled": true
+      },
+      {
+        "type": "predict",
+        "intervalMs": 600000,
+        "offsetMs": 0,
+        "priority": "low",
+        "description": "Predictive preloading",
+        "enabled": false
+      },
+      {
+        "type": "document",
+        "intervalMs": 3600000,
+        "offsetMs": 0,
+        "priority": "low",
+        "description": "Auto-documentation",
+        "enabled": false
+      }
+    ]
+  },
+  "savedAt": "2026-05-11T07:46:35.425Z"
+}

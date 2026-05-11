@@ -86,6 +86,13 @@ class UserGroupService
     {
         $group = $this->find($groupId);
 
+        // Allow if actor is the group's director (even without global permission)
+        abort_if(
+            $group->director_id !== $actor->id && ! $actor->can('hr.user_groups.manage_members'),
+            403,
+            'You do not have permission to manage members of this group.',
+        );
+
         $this->repo->addMember($group, $userId, $actor->id);
 
         $this->audit->log('user_group.member_added', target: $group, metadata: ['user_id' => $userId], actor: $actor);
@@ -97,11 +104,61 @@ class UserGroupService
     {
         $group = $this->find($groupId);
 
+        abort_if(
+            $group->director_id !== $actor->id && ! $actor->can('hr.user_groups.manage_members'),
+            403,
+            'You do not have permission to manage members of this group.',
+        );
+
         $this->repo->removeMember($group, $userId);
 
         $this->audit->log('user_group.member_removed', target: $group, metadata: ['user_id' => $userId], actor: $actor);
 
         return $this->repo->findById($groupId);
+    }
+
+    public function assignDirector(string $groupId, string $userId, User $actor): UserGroup
+    {
+        $group = $this->find($groupId);
+        $before = ['director_id' => $group->director_id];
+
+        // Director must be a user that exists (validation in controller)
+        // Auto-add director as a member if not already
+        $this->repo->addMember($group, $userId, $actor->id);
+
+        $updated = $this->repo->setDirector($group, $userId);
+        $updated->load(['departments', 'members.employee', 'creator', 'director.employee']);
+        $updated->loadCount('members');
+
+        $this->audit->log(
+            'user_group.director_assigned',
+            target: $updated,
+            before: $before,
+            after: ['director_id' => $userId],
+            actor: $actor,
+        );
+
+        return $updated;
+    }
+
+    public function removeDirector(string $groupId, User $actor): UserGroup
+    {
+        $group = $this->find($groupId);
+        $before = ['director_id' => $group->director_id];
+
+        $updated = $this->repo->clearDirector($group);
+        $updated->load(['departments', 'members.employee', 'creator']);
+        $updated->loadCount('members');
+
+        $this->audit->log(
+            'user_group.director_removed',
+            target: $updated,
+            before: $before,
+            after: ['director_id' => null],
+            actor: $actor,
+        );
+
+        return $updated;
     }
 
     public function delete(string $id, User $actor): void

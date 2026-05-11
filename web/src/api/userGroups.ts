@@ -50,4 +50,12 @@ export const userGroupApi = {
   removeMember(groupId: string, userId: string): Promise<{ group: UserGroup }> {
     return unwrap(api.delete(`/user-groups/${groupId}/members/${userId}`));
   },
+
+  assignDirector(groupId: string, userId: string): Promise<{ group: UserGroup }> {
+    return unwrap(api.put(`/user-groups/${groupId}/director`, { user_id: userId }));
+  },
+
+  removeDirector(groupId: string): Promise<{ group: UserGroup }> {
+    return unwrap(api.delete(`/user-groups/${groupId}/director`));
+  },
 };

@@ -16,7 +16,7 @@ class UserGroupRepository
         $perPage = min((int) ($filters['per_page'] ?? 15), 100);
 
         return UserGroup::query()
-            ->with(['departments', 'creator'])
+            ->with(['departments', 'creator', 'director'])
             ->withCount('members')
             ->when(
                 isset($filters['search']) && $filters['search'] !== '',
@@ -44,7 +44,7 @@ class UserGroupRepository
     public function all(array $filters = []): Collection
     {
         return UserGroup::query()
-            ->with(['departments', 'creator'])
+            ->with(['departments', 'creator', 'director'])
             ->withCount('members')
             ->when(
                 isset($filters['department_id']) && $filters['department_id'] !== '',
@@ -60,7 +60,7 @@ class UserGroupRepository
 
     public function findById(string $id): ?UserGroup
     {
-        return UserGroup::with(['departments', 'members.employee', 'creator'])
+        return UserGroup::with(['departments', 'members.employee', 'creator', 'director.employee'])
             ->withCount('members')
             ->find($id);
     }
@@ -98,5 +98,21 @@ class UserGroupRepository
     public function softDelete(UserGroup $group): void
     {
         $group->delete();
+    }
+
+    public function setDirector(UserGroup $group, string $userId): UserGroup
+    {
+        $group->director_id = $userId;
+        $group->save();
+
+        return $group->fresh(['director.employee']);
+    }
+
+    public function clearDirector(UserGroup $group): UserGroup
+    {
+        $group->director_id = null;
+        $group->save();
+
+        return $group->fresh();
     }
 }

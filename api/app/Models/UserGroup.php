@@ -23,6 +23,7 @@ class UserGroup extends Model
         'type',
         'is_active',
         'created_by',
+        'director_id',
     ];
 
     protected function casts(): array
@@ -48,6 +49,16 @@ class UserGroup extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * The designated director / admin of this group.
+     * The director can manage group members without needing the global
+     * hr.user_groups.manage_members permission.
+     */
+    public function director(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'director_id');
     }
 
     /**

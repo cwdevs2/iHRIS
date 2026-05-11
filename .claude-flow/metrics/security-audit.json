@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-11T07:46:35.424Z",
+  "mode": "headless",
+  "workerType": "audit",
+  "model": "haiku",
+  "durationMs": 8233,
+  "executionId": "audit_1778485587191_s8b2dn",
+  "success": false,
+  "findings": {
+    "parseError": true,
+    "rawOutput": "You've hit your limit · resets 6:30pm (Asia/Manila)\n"
+  },
+  "rawOutputPreview": "You've hit your limit · resets 6:30pm (Asia/Manila)\n",
+  "rawOutputLength": 52
+}

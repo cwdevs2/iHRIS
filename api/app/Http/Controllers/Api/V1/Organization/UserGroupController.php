@@ -109,4 +109,30 @@ class UserGroupController extends Controller
 
         return ApiResponse::success(['group' => new UserGroupResource($group)]);
     }
+
+    /**
+     * PUT /user-groups/{id}/director
+     * Body: { user_id: uuid }  — assigns a member as the group director.
+     */
+    public function assignDirector(Request $request, string $id): JsonResponse
+    {
+        $data = $request->validate([
+            'user_id' => ['required', 'uuid', 'exists:users,id'],
+        ]);
+
+        $group = $this->service->assignDirector($id, $data['user_id'], $request->user());
+
+        return ApiResponse::success(['group' => new UserGroupResource($group)]);
+    }
+
+    /**
+     * DELETE /user-groups/{id}/director
+     * Removes the current director without deleting the user from the group.
+     */
+    public function removeDirector(Request $request, string $id): JsonResponse
+    {
+        $group = $this->service->removeDirector($id, $request->user());
+
+        return ApiResponse::success(['group' => new UserGroupResource($group)]);
+    }
 }

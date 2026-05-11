@@ -141,6 +141,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/user-groups/{id}/members', [UserGroupController::class, 'addMember'])->name('user-groups.members.add');
         Route::delete('/user-groups/{id}/members/{userId}', [UserGroupController::class, 'removeMember'])->name('user-groups.members.remove');
     });
+    // Director routes use edit permission; the group director can also call member routes (enforced in service)
+    Route::middleware('permission:hr.user_groups.edit')->group(function () {
+        Route::put('/user-groups/{id}/director', [UserGroupController::class, 'assignDirector'])->name('user-groups.director.assign');
+        Route::delete('/user-groups/{id}/director', [UserGroupController::class, 'removeDirector'])->name('user-groups.director.remove');
+    });
 
     // ── Users ───────────────────────────────────────────────────────────────
 
