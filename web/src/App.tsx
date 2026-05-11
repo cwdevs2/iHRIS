@@ -43,6 +43,7 @@ import { ReportsPage } from '@/pages/reports/ReportsPage';
 import { AssetsPage } from '@/pages/assets/AssetsPage';
 import { CompliancePage } from '@/pages/compliance/CompliancePage';
 import { IntegrationsPage } from '@/pages/integrations/IntegrationsPage';
+import { RoleManagementPage } from '@/pages/users/RoleManagementPage';
 
 function BootGate({ children }: { children: React.ReactNode }) {
   const { isReady } = useBootstrapAuth();
@@ -309,6 +310,15 @@ function AppRouter() {
           element={
             <RequirePermission permission="integrations.keys.view">
               <IntegrationsPage />
+            </RequirePermission>
+          }
+        />
+
+        <Route
+          path="roles"
+          element={
+            <RequirePermission permission="core.roles.view">
+              <RoleManagementPage />
             </RequirePermission>
           }
         />

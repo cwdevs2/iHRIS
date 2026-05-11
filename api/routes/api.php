@@ -184,9 +184,19 @@ Route::middleware('auth:sanctum')->group(function () {
             ->post('/{id}/notes', [TicketController::class, 'addNote'])->name('tickets.notes.store.own');
     });
 
-    // ── Roles (read-only, for assignment dropdowns) ──────────────────────────
+    // ── Roles ───────────────────────────────────────────────────────────────
     Route::middleware('permission:core.roles.view')
         ->get('/roles', [RoleController::class, 'index'])->name('roles.index');
+    Route::middleware('permission:core.roles.create')
+        ->post('/roles', [RoleController::class, 'store'])->name('roles.store');
+    Route::middleware('permission:core.roles.edit')
+        ->put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
+    Route::middleware('permission:core.roles.edit')
+        ->patch('/roles/{id}/rename', [RoleController::class, 'rename'])->name('roles.rename');
+    Route::middleware('permission:core.roles.create')
+        ->post('/roles/{id}/clone', [RoleController::class, 'clone'])->name('roles.clone');
+    Route::middleware('permission:core.roles.delete')
+        ->delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
 
     // ── Audit Logs ──────────────────────────────────────────────────────────
     Route::middleware('permission:core.audit_logs.view')

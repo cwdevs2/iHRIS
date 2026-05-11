@@ -29,6 +29,7 @@ import {
   Boxes,
   Plug,
   ScrollText,
+  KeyRound,
 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
@@ -47,32 +48,71 @@ interface NavItem {
   hideIfPermission?: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/employees', label: 'Employees', icon: Users, permission: 'hr.employees.view' },
-  { to: '/organization', label: 'Organization', icon: Building2, permission: 'hr.departments.view' },
-  { to: '/org-chart', label: 'Org Chart', icon: GitFork, permission: 'hr.departments.view' },
-  { to: '/onboarding', label: 'Onboarding', icon: ClipboardList, permission: 'hr.onboarding.view' },
-  { to: '/tickets', label: 'HR Helpdesk', icon: Ticket, permission: 'hr.tickets.view' },
-  { to: '/attendance', label: 'Attendance', icon: Clock, permission: 'attendance.logs.view' },
-  { to: '/schedule', label: 'Schedule', icon: CalendarRange, permission: 'attendance.logs.view' },
-  { to: '/leaves', label: 'Leaves', icon: CalendarDays, permission: 'leaves.requests.view' },
-  { to: '/payroll', label: 'Payroll', icon: Banknote, permission: 'payroll.runs.view' },
-  { to: '/my-payslips', label: 'My Payslips', icon: Receipt, permission: 'payroll.payslips.view_own', hideIfPermission: 'payroll.payslips.view_all' },
-  { to: '/recruitment', label: 'Recruitment', icon: Briefcase, permission: 'recruitment.jobs.view' },
-  { to: '/performance', label: 'Performance', icon: TrendingUp, permission: 'performance.reviews.view' },
-  // ESS — Employee Self-Service (permission gate removed until RBAC module is built)
-  { to: '/ess', label: 'ESS Portal', icon: SlidersHorizontal },
-  { to: '/ess/clock', label: 'Clock In / Out', icon: Timer },
-  { to: '/ess/leave', label: 'My Leave', icon: CalendarDays },
-  { to: '/ess/correction', label: 'Corrections', icon: FileEdit },
-  { to: '/ess/profile', label: 'My Profile', icon: UserCircle },
-  { to: '/reports', label: 'Reports', icon: FileText, permission: 'reports.analytics.view' },
-  { to: '/assets', label: 'Assets', icon: Boxes, permission: 'assets.inventory.view' },
-  { to: '/compliance', label: 'Compliance', icon: ScrollText, permission: 'compliance.policies.view' },
-  { to: '/integrations', label: 'Integrations', icon: Plug, permission: 'integrations.keys.view' },
-  { to: '/users', label: 'User Accounts', icon: ShieldCheck, permission: 'users.accounts.view' },
-  { to: '/audit-logs', label: 'Audit Logs', icon: ShieldCheck, permission: 'core.audit_logs.view' },
+interface NavGroup {
+  label?: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    items: [
+      { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: 'People & HR',
+    items: [
+      { to: '/employees', label: 'Employees', icon: Users, permission: 'hr.employees.view' },
+      { to: '/organization', label: 'Organization', icon: Building2, permission: 'hr.departments.view' },
+      { to: '/org-chart', label: 'Org Chart', icon: GitFork, permission: 'hr.departments.view' },
+      { to: '/onboarding', label: 'Onboarding', icon: ClipboardList, permission: 'hr.onboarding.view' },
+      { to: '/tickets', label: 'HR Helpdesk', icon: Ticket, permission: 'hr.tickets.view' },
+      { to: '/recruitment', label: 'Recruitment', icon: Briefcase, permission: 'recruitment.jobs.view' },
+      { to: '/performance', label: 'Performance', icon: TrendingUp, permission: 'performance.reviews.view' },
+    ],
+  },
+  {
+    label: 'Attendance',
+    items: [
+      { to: '/attendance', label: 'Attendance', icon: Clock, permission: 'attendance.logs.view' },
+      { to: '/schedule', label: 'Schedule', icon: CalendarRange, permission: 'attendance.logs.view' },
+      { to: '/ess/clock', label: 'Clock In / Out', icon: Timer },
+      { to: '/ess/correction', label: 'Corrections', icon: FileEdit },
+    ],
+  },
+  {
+    label: 'Leave',
+    items: [
+      { to: '/leaves', label: 'Leaves', icon: CalendarDays, permission: 'leaves.requests.view' },
+      { to: '/ess/leave', label: 'My Leave', icon: CalendarDays },
+    ],
+  },
+  {
+    label: 'Payroll',
+    items: [
+      { to: '/payroll', label: 'Payroll', icon: Banknote, permission: 'payroll.runs.view' },
+      { to: '/my-payslips', label: 'My Payslips', icon: Receipt, permission: 'payroll.payslips.view_own', hideIfPermission: 'payroll.payslips.view_all' },
+    ],
+  },
+  {
+    label: 'Self-Service',
+    items: [
+      { to: '/ess', label: 'ESS Portal', icon: SlidersHorizontal },
+      { to: '/ess/profile', label: 'My Profile', icon: UserCircle },
+    ],
+  },
+  {
+    label: 'Utilities',
+    items: [
+      { to: '/reports', label: 'Reports', icon: FileText, permission: 'reports.analytics.view' },
+      { to: '/assets', label: 'Assets', icon: Boxes, permission: 'assets.inventory.view' },
+      { to: '/compliance', label: 'Compliance', icon: ScrollText, permission: 'compliance.policies.view' },
+      { to: '/integrations', label: 'Integrations', icon: Plug, permission: 'integrations.keys.view' },
+      { to: '/users', label: 'User Accounts', icon: ShieldCheck, permission: 'users.accounts.view' },
+      { to: '/roles', label: 'Role Management', icon: KeyRound, permission: 'core.roles.view' },
+      { to: '/audit-logs', label: 'Audit Logs', icon: ShieldCheck, permission: 'core.audit_logs.view' },
+    ],
+  },
 ];
 
 export function AppLayout() {
@@ -82,11 +122,14 @@ export function AppLayout() {
   const logout = useLogout();
   const location = useLocation();
 
-  const visibleNav = NAV_ITEMS.filter((item) => {
-    if (item.permission && !hasPermission(item.permission)) return false;
-    if (item.hideIfPermission && hasPermission(item.hideIfPermission)) return false;
-    return true;
-  });
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      if (item.permission && !hasPermission(item.permission)) return false;
+      if (item.hideIfPermission && hasPermission(item.hideIfPermission)) return false;
+      return true;
+    }),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <div className="flex min-h-screen w-full bg-surface-50">
@@ -102,39 +145,55 @@ export function AppLayout() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-2">
-          <ul className="flex flex-col gap-0.5">
-            {visibleNav.map((item) => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.to === '/'}
-                  className={({ isActive }) =>
-                    cn(
-                      'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium',
-                      'transition-[background-color,color] duration-200 ease-out-strong',
-                      'cursor-pointer',
-                      isActive
-                        ? 'bg-brand-50 text-brand-700'
-                        : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900',
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive ? (
-                        <motion.span
-                          layoutId="active-pill"
-                          className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-brand-600"
-                          transition={{ duration: 0.3, ease: easeOutStrong }}
-                        />
-                      ) : null}
-                      <item.icon className="h-4.5 w-4.5 shrink-0" aria-hidden />
-                      {!collapsed ? (
-                        <span className="truncate">{item.label}</span>
-                      ) : null}
-                    </>
-                  )}
-                </NavLink>
+          <ul className="flex flex-col">
+            {visibleGroups.map((group) => (
+              <li key={group.label ?? '__top'}>
+                {group.label ? (
+                  collapsed ? (
+                    <div className="mx-2 my-2 border-t border-surface-100" />
+                  ) : (
+                    <p className="mt-4 mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400">
+                      {group.label}
+                    </p>
+                  )
+                ) : null}
+                <ul className="flex flex-col gap-0.5">
+                  {group.items.map((item) => (
+                    <li key={item.to}>
+                      <NavLink
+                        to={item.to}
+                        end={item.to === '/'}
+                        title={collapsed ? item.label : undefined}
+                        className={({ isActive }) =>
+                          cn(
+                            'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium',
+                            'transition-[background-color,color] duration-200 ease-out-strong',
+                            'cursor-pointer',
+                            isActive
+                              ? 'bg-brand-50 text-brand-700'
+                              : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900',
+                          )
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            {isActive ? (
+                              <motion.span
+                                layoutId="active-pill"
+                                className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-brand-600"
+                                transition={{ duration: 0.3, ease: easeOutStrong }}
+                              />
+                            ) : null}
+                            <item.icon className="h-4.5 w-4.5 shrink-0" aria-hidden />
+                            {!collapsed ? (
+                              <span className="truncate">{item.label}</span>
+                            ) : null}
+                          </>
+                        )}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ul>
