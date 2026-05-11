@@ -43,6 +43,17 @@ class UserResource extends JsonResource
                     ->values()
                     ->map(fn ($p) => "{$p->module}.{$p->feature}.{$p->action}");
             }),
+            // Groups expose the department scope for this user
+            'groups' => $this->whenLoaded('groups', function () {
+                return $this->groups->map(fn ($g) => [
+                    'id'             => $g->id,
+                    'name'           => $g->name,
+                    'type'           => $g->type,
+                    'department_ids' => $g->relationLoaded('departments')
+                        ? $g->departments->pluck('id')->values()->all()
+                        : [],
+                ])->values()->all();
+            }),
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

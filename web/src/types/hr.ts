@@ -199,6 +199,48 @@ export interface Pagination {
   last_page: number;
 }
 
+// ─── User Groups ──────────────────────────────────────────────────────────────
+
+export type UserGroupType = 'department_head' | 'hr_admin' | 'custom';
+
+export interface UserGroupMember {
+  id: string;
+  full_name: string;
+  email: string;
+  avatar_url: string | null;
+  employee_number: string | null;
+  added_by: string | null;
+  added_at: string | null;
+}
+
+export interface UserGroupDepartment {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface UserGroup {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  type: UserGroupType;
+  is_active: boolean;
+  members_count: number;
+  department_ids: string[];
+  departments: UserGroupDepartment[];
+  members?: UserGroupMember[];
+  created_by: string | null;
+  creator: { id: string; full_name: string } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserGroupListResponse {
+  groups: UserGroup[];
+  pagination?: Pagination;
+}
+
 // ─── Document ─────────────────────────────────────────────────────────────────
 
 export type DocumentCategory =

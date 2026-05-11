@@ -28,6 +28,15 @@ export interface AuthRole {
   hierarchy_level: number;
 }
 
+/** A condensed group entry returned by the /auth/me endpoint. */
+export interface AuthUserGroup {
+  id: string;
+  name: string;
+  type: 'department_head' | 'hr_admin' | 'custom';
+  /** Department IDs this group is scoped to manage. */
+  department_ids: string[];
+}
+
 export interface AuthUser {
   id: string;
   employee_id: string | null;
@@ -43,6 +52,8 @@ export interface AuthUser {
   roles: AuthRole[];
   /** Format: `module.feature.action` (e.g. `hr.employees.view`). */
   permissions: string[];
+  /** Groups the user belongs to, with department scope. */
+  groups: AuthUserGroup[];
   last_login_at: string | null;
   created_at: string;
 }

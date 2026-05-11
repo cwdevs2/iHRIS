@@ -42,6 +42,16 @@ class RoleSeeder extends Seeder
             ],
         );
 
+        $deptHead = Role::updateOrCreate(
+            ['name' => 'department_head'],
+            [
+                'display_name' => 'Department Head',
+                'description' => 'Manages employees within their delegated departments.',
+                'hierarchy_level' => 30,
+                'is_system' => true,
+            ],
+        );
+
         $employee = Role::updateOrCreate(
             ['name' => 'employee'],
             [
@@ -60,6 +70,7 @@ class RoleSeeder extends Seeder
             ->whereIn('module', ['hr', 'attendance', 'leaves', 'payroll', 'ess', 'recruitment', 'performance', 'reports', 'assets', 'compliance', 'integrations'])
             ->orWhere(fn ($q) => $q->where('module', 'core')->whereIn('feature', ['users', 'audit_logs']))
             ->pluck('id'));
+        // Ensure hr_admin also gets user_groups permissions (included in 'hr' module above).
 
         // Manager: view team data, approve requests, ESS, view payroll (read-only), performance.
         $manager->permissions()->sync(Permission::query()
@@ -68,6 +79,20 @@ class RoleSeeder extends Seeder
             ->orWhere('module', 'ess')
             ->orWhere(fn ($q) => $q->where('module', 'payroll')->whereIn('action', ['view', 'view_own']))
             ->orWhere(fn ($q) => $q->where('module', 'recruitment')->whereIn('action', ['view']))
+            ->orWhere(fn ($q) => $q->where('module', 'performance'))
+            ->pluck('id'));
+
+        // Department Head: manage their delegated departments' employees, approve leave/attendance.
+        $deptHead->permissions()->sync(Permission::query()
+            ->where(fn ($q) => $q->where('module', 'hr')
+                ->whereIn('feature', ['employees', 'departments', 'positions'])
+                ->whereIn('action', ['view', 'edit']))
+            ->orWhere(fn ($q) => $q->where('module', 'hr')
+                ->where('feature', 'user_groups')
+                ->whereIn('action', ['view', 'manage_members']))
+            ->orWhere(fn ($q) => $q->where('module', 'attendance'))
+            ->orWhere(fn ($q) => $q->where('module', 'leaves'))
+            ->orWhere('module', 'ess')
             ->orWhere(fn ($q) => $q->where('module', 'performance'))
             ->pluck('id'));
 

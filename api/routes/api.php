@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\Recruitment\JobRequisitionController;
 use App\Http\Controllers\Api\V1\Recruitment\OfferLetterController;
 use App\Http\Controllers\Api\V1\Recruitment\RecruitmentAnalyticsController;
 use App\Http\Controllers\Api\V1\Organization\DepartmentController;
+use App\Http\Controllers\Api\V1\Organization\UserGroupController;
 use App\Http\Controllers\Api\V1\Payroll\ComplianceReportController;
 use App\Http\Controllers\Api\V1\Payroll\FinalPayController;
 use App\Http\Controllers\Api\V1\Payroll\LoanController;
@@ -124,6 +125,22 @@ Route::middleware('auth:sanctum')->group(function () {
         ->patch('/positions/{id}', [PositionController::class, 'update'])->name('positions.update');
     Route::middleware('permission:hr.positions.delete')
         ->delete('/positions/{id}', [PositionController::class, 'destroy'])->name('positions.destroy');
+
+    // ── User Groups (department-scoped delegation) ──────────────────────────
+    Route::middleware('permission:hr.user_groups.view')->group(function () {
+        Route::get('/user-groups', [UserGroupController::class, 'index'])->name('user-groups.index');
+        Route::get('/user-groups/{id}', [UserGroupController::class, 'show'])->name('user-groups.show');
+    });
+    Route::middleware('permission:hr.user_groups.create')
+        ->post('/user-groups', [UserGroupController::class, 'store'])->name('user-groups.store');
+    Route::middleware('permission:hr.user_groups.edit')
+        ->patch('/user-groups/{id}', [UserGroupController::class, 'update'])->name('user-groups.update');
+    Route::middleware('permission:hr.user_groups.delete')
+        ->delete('/user-groups/{id}', [UserGroupController::class, 'destroy'])->name('user-groups.destroy');
+    Route::middleware('permission:hr.user_groups.manage_members')->group(function () {
+        Route::post('/user-groups/{id}/members', [UserGroupController::class, 'addMember'])->name('user-groups.members.add');
+        Route::delete('/user-groups/{id}/members/{userId}', [UserGroupController::class, 'removeMember'])->name('user-groups.members.remove');
+    });
 
     // ── Users ───────────────────────────────────────────────────────────────
 

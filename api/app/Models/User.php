@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -72,6 +73,13 @@ class User extends Authenticatable
             ->withPivot('assigned_by');
     }
 
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(UserGroup::class, 'user_group_members', 'user_id', 'user_group_id')
+            ->withTimestamps()
+            ->withPivot('added_by');
+    }
+
     public function hasRole(string $name): bool
     {
         return $this->roles->contains(fn (Role $role) => $role->name === $name);
@@ -98,5 +106,29 @@ class User extends Authenticatable
     public function isLocked(): bool
     {
         return $this->locked_until !== null && $this->locked_until->isFuture();
+    }
+
+    /**
+     * Return the department IDs this user is allowed to manage via their groups.
+     * Returns an empty collection when the user has no groups (caller should
+     * treat that as "no delegated scope" rather than "all departments").
+     */
+    public function scopedDepartmentIds(): Collection
+    {
+        $this->loadMissing('groups.departments');
+
+        return $this->groups
+            ->flatMap(fn (UserGroup $g) => $g->departments->pluck('id'))
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Whether this user has at least one department scope via groups.
+     * Super-admins / HR admins with global permission bypass this entirely.
+     */
+    public function hasDepartmentScope(): bool
+    {
+        return $this->scopedDepartmentIds()->isNotEmpty();
     }
 }

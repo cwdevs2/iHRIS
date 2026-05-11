@@ -45,6 +45,13 @@ class PermissionSeeder extends Seeder
         ['hr', 'positions', 'edit', 'Edit positions'],
         ['hr', 'positions', 'delete', 'Archive positions'],
 
+        // HR / User Groups (department-scoped delegation)
+        ['hr', 'user_groups', 'view', 'View user groups'],
+        ['hr', 'user_groups', 'create', 'Create user groups'],
+        ['hr', 'user_groups', 'edit', 'Edit user groups'],
+        ['hr', 'user_groups', 'delete', 'Archive user groups'],
+        ['hr', 'user_groups', 'manage_members', 'Add/remove members from user groups'],
+
         // HR / Onboarding
         ['hr', 'onboarding', 'view', 'View onboarding checklists & assignments'],
         ['hr', 'onboarding', 'manage', 'Manage onboarding (create, assign, complete tasks)'],

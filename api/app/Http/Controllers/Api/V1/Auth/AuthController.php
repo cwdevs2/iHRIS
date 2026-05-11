@@ -86,7 +86,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load('roles.permissions');
+        $user = $request->user()->load(['roles.permissions', 'groups.departments']);
 
         return ApiResponse::success([
             'user' => new UserResource($user),
@@ -143,7 +143,7 @@ class AuthController extends Controller
         return ApiResponse::success([
             'token' => $token->plainTextToken,
             'token_type' => 'Bearer',
-            'user' => new UserResource($user->load('roles.permissions')),
+            'user' => new UserResource($user->load(['roles.permissions', 'groups.departments'])),
         ]);
     }
 }

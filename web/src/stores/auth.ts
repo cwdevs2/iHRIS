@@ -11,6 +11,12 @@ interface AuthState {
   reset: () => void;
   hasPermission: (key: string) => boolean;
   hasAnyRole: (...names: string[]) => boolean;
+  /**
+   * Returns the list of department IDs the user is scoped to via their groups.
+   * An empty array means the user has no group scope (treat as "no delegated access").
+   * Users with global HR permissions bypass this entirely in the API.
+   */
+  scopedDepartmentIds: () => string[];
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -40,5 +46,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = get().user;
     if (!user) return false;
     return user.roles.some((r) => names.includes(r.name));
+  },
+
+  scopedDepartmentIds: () => {
+    const user = get().user;
+    if (!user?.groups?.length) return [];
+    const ids = user.groups.flatMap((g) => g.department_ids);
+    return [...new Set(ids)];
   },
 }));
